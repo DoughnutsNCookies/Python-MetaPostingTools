@@ -24,12 +24,20 @@ def next_tuesday_10am() -> datetime:
     return now.replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
 
 
-def schedule_post(image_path: Path, caption: str, slug: str):
+def next_thursday_10am() -> datetime:
+    now = datetime.now(MYT)
+    days_ahead = (3 - now.weekday()) % 7
+    if days_ahead == 0 and now.hour >= 10:
+        days_ahead = 7
+    return now.replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
+
+
+def schedule_post(image_path: Path, caption: str, slug: str, post_type: str):
     if not Path(SESSION_FILE).exists():
         print("ERROR: No session found. Run setup.py first.")
         sys.exit(1)
 
-    scheduled_dt = next_tuesday_10am()
+    scheduled_dt = next_thursday_10am() if post_type == "testimonial" else next_tuesday_10am()
     print(f"\n  Scheduling for: {scheduled_dt.strftime('%A, %d %B %Y at %I:%M %p MYT')}\n")
 
     with sync_playwright() as p:
@@ -59,8 +67,11 @@ def schedule_post(image_path: Path, caption: str, slug: str):
 
         # Enter caption
         print("  Entering caption...")
-        blog_link = f"{BLOG_BASE_URL}/{slug}"
-        full_caption = caption if blog_link in caption else f"{caption}\n\n{blog_link}"
+        if post_type == "blog" and slug:
+            blog_link = f"{BLOG_BASE_URL}/{slug}"
+            full_caption = caption if blog_link in caption else f"{caption}\n\n{blog_link}"
+        else:
+            full_caption = caption
         composer = page.get_by_label("Text")
         composer.click()
         composer.fill(full_caption)
@@ -115,13 +126,19 @@ def schedule_post(image_path: Path, caption: str, slug: str):
 def main():
     parser = argparse.ArgumentParser(description="Schedule a post to Facebook and Instagram via Meta Business Suite.")
     parser.add_argument("image", help="Path to the image file (PNG/JPG)")
-    parser.add_argument("slug", help="Blog slug (e.g. my-blog-post)")
+    parser.add_argument("slug", nargs="?", default="", help="Blog slug (e.g. my-blog-post) — required for blog type")
     parser.add_argument("--caption-file", required=True, help="Path to a .txt file containing the caption")
+    parser.add_argument("--type", dest="post_type", choices=["blog", "testimonial"], required=True,
+                        help="Post type: 'blog' (Tuesday) or 'testimonial' (Thursday)")
     args = parser.parse_args()
 
     image_path = Path(args.image)
     if not image_path.exists():
         print(f"ERROR: Image not found: {image_path}")
+        sys.exit(1)
+
+    if args.post_type == "blog" and not args.slug:
+        print("ERROR: slug is required for blog posts.")
         sys.exit(1)
 
     caption_path = Path(args.caption_file)
@@ -130,7 +147,7 @@ def main():
         sys.exit(1)
 
     caption = caption_path.read_text(encoding="utf-8").strip()
-    schedule_post(image_path, caption, args.slug)
+    schedule_post(image_path, caption, args.slug, args.post_type)
 
 
 if __name__ == "__main__":
