@@ -4,6 +4,7 @@ A collection of Python tools for managing Schuah Solutions content.
 
 ## Tools
 
+- **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
 - **`post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
 - **`setup.py`** — One-time login setup for Meta Business Suite (saves browser session)
@@ -28,6 +29,29 @@ playwright install chromium
 python setup.py
 ```
 Log in manually including 2FA, then press Enter. Session is saved and reused automatically.
+
+---
+
+## publish.py — Full Blog Publishing Workflow
+
+```
+python publish.py "C:\path\to\blog.md" "C:\path\to\image.png" --worktree "C:\path\to\worktree"
+```
+
+Copies the markdown, updates `paths.ts`, converts the PNG to WEBP, commits everything, and opens a PR.
+
+**Options:**
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `blog` | Yes | Path to the `.md` file |
+| `image` | Yes | Path to the cover image PNG |
+| `--worktree` | No | Path to the git worktree. Defaults to the main project directory |
+| `--quality` | No | WEBP quality 1–100. Default: 82 |
+
+**Example:**
+```
+python publish.py "C:\Users\schuah\Downloads\my-post.md" "C:\Users\schuah\Downloads\cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+```
 
 ---
 

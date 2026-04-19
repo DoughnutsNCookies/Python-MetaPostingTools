@@ -34,6 +34,50 @@ python convert.py "C:\path\to\image.png" <slug> --target "C:\Code\WebApp-SchuahS
 python post.py "C:\path\to\image.png" <slug> --caption-file caption.txt
 ```
 
+## Blog Publishing Workflow
+
+When the user sends a new blog post (markdown file + cover image PNG), run `publish.py`:
+
+```bash
+venv\Scripts\activate
+python publish.py "C:\path\to\blog.md" "C:\path\to\image.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+```
+
+This handles everything in one command:
+1. Copies the `.md` file to `landing-page/src/blogs/<slug>.md`
+2. Adds `/blogs/<slug>` to `landing-page/src/app/paths.ts`
+3. Converts the PNG to WEBP → `landing-page/public/blogs/<slug>.webp`
+4. Commits, pushes, and opens a PR against `main`
+
+Omit `--worktree` to target the main project directory (not a worktree branch).
+
+After the user merges the PR, sync the worktree branch:
+
+```bash
+git fetch origin main && git merge origin/main --no-edit && git push origin HEAD:<branch-name>
+```
+
+### Blog markdown format
+
+```yaml
+---
+title: "Post Title"
+description: "Short description for meta and card preview"
+slug: "post-slug"
+date: "DD MONTH YYYY"
+---
+
+Content here...
+```
+
+### Schedule social media post (optional, same session)
+
+```bash
+python post.py "C:\path\to\social-image.png" <slug> --caption-file caption.txt
+```
+
+---
+
 ## Key implementation details
 
 **`convert.py`** — TARGET_DIR is hardcoded to the main landing page path. Use `--target` to override for worktree branches. Default quality is 82; use `--force` to overwrite an existing slug.
