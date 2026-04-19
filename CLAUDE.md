@@ -90,7 +90,10 @@ Hey, remember to post it to your Google Business Profile!
 <full caption text with last line replaced: "Read it now by clicking on the "Learn more" button">
 ```
 
-**Button:** Learn more → `https://schuahsolutions.com/blogs/<slug>`
+**Button:** Learn more →
+```
+https://schuahsolutions.com/blogs/<slug>
+```
 ---
 
 Once GBP API access is approved, this step will be automated via `gbp_post.py`.
