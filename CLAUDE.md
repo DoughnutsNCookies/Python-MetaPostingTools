@@ -36,22 +36,40 @@ python post.py "C:\path\to\image.png" <slug> --caption-file caption.txt
 
 ## Blog Publishing Workflow
 
-When the user sends a new blog post (markdown file + cover image PNG), run `publish.py`:
+The user sends only the blog markdown content. Claude handles everything else automatically.
+
+### Step 1 — Export images from Canva (Claude does this via MCP)
+
+Two Canva designs are always kept up to date — page 1 of each is always the latest blog:
+
+| Design | Canva ID | Purpose |
+|--------|----------|---------|
+| Blog Cover Image | `DAGeyipWBWU` | Converted to WEBP for the website |
+| Social Media Post | `DAGal3LsJUo` | Posted to Facebook + Instagram |
+
+Export page 1 of both as PNG using the Canva MCP `export-design` tool, then download each to a temp path (e.g. `C:\Users\schuah\AppData\Local\Temp\blog-cover.png` and `C:\Users\schuah\AppData\Local\Temp\social-post.png`).
+
+### Step 2 — Save the blog markdown to a temp file
+
+Write the markdown content the user provided to a temp file (e.g. `C:\Users\schuah\AppData\Local\Temp\blog.md`).
+
+### Step 3 — Run publish.py
 
 ```bash
+cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
-python publish.py "C:\path\to\blog.md" "C:\path\to\image.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+python publish.py "C:\Users\schuah\AppData\Local\Temp\blog.md" "C:\Users\schuah\AppData\Local\Temp\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
 ```
 
-This handles everything in one command:
-1. Copies the `.md` file to `landing-page/src/blogs/<slug>.md`
-2. Adds `/blogs/<slug>` to `landing-page/src/app/paths.ts`
-3. Converts the PNG to WEBP → `landing-page/public/blogs/<slug>.webp`
-4. Commits, pushes, and opens a PR against `main`
+### Step 4 — Run post.py
 
-Omit `--worktree` to target the main project directory (not a worktree branch).
+Write the social media caption to `caption.txt`, then:
 
-After the user merges the PR, sync the worktree branch:
+```bash
+python post.py "C:\Users\schuah\AppData\Local\Temp\social-post.png" <slug> --caption-file caption.txt
+```
+
+### Step 5 — After user merges the PR, sync the worktree branch
 
 ```bash
 git fetch origin main && git merge origin/main --no-edit && git push origin HEAD:<branch-name>
@@ -68,12 +86,6 @@ date: "DD MONTH YYYY"
 ---
 
 Content here...
-```
-
-### Schedule social media post (optional, same session)
-
-```bash
-python post.py "C:\path\to\social-image.png" <slug> --caption-file caption.txt
 ```
 
 ---
