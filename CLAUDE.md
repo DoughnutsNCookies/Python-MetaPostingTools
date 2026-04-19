@@ -76,7 +76,26 @@ Write the social media caption to `caption.txt`, then:
 python post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt
 ```
 
-### Step 5 — After user merges the PR, sync the worktree branch
+### Step 5 — After user merges the PR, remind them to post to GBP manually
+
+After the user confirms the PR is merged, send this reminder with ready-to-copy content:
+
+---
+Hey, remember to post it to your Google Business Profile!
+
+**Image:** `C:\Code\Python-MetaPostingTools\social-post.png`
+
+**Description:**
+```
+<full caption text with last line replaced: "Read it now by clicking on the "Learn more" button">
+```
+
+**Button:** Learn more → `https://schuahsolutions.com/blogs/<slug>`
+---
+
+Once GBP API access is approved, this step will be automated via `gbp_post.py`.
+
+### Step 6 — Sync the worktree branch
 
 ```bash
 git fetch origin main && git merge origin/main --no-edit && git push origin HEAD:<branch-name>
