@@ -8,3 +8,6 @@ caption.txt
 blog.md
 blog-cover.png
 social-post.png
+client_secret.json
+token_gbp.json
+session_gbp.json
