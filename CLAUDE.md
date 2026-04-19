@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo does
 
-Two CLI tools for managing Schuah Solutions content:
+Three CLI tools for managing Schuah Solutions content:
 
+- **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
 - **`post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation), targeting the coming Tuesday at 10:00 AM MYT
 - **`setup.py`** — One-time login helper: opens a browser for manual Meta login + 2FA, then saves the session to `session.json` for reuse
+- **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
+- **`setup_gbp.py`** — ⚠️ NOT YET ACTIVE. GBP auth setup, to be wired up once API access is granted.
 
 ## Setup
 
