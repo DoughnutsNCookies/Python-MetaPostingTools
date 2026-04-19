@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -8,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "session_gbp.json")
 BLOG_BASE_URL = "https://schuahsolutions.com/blogs"
+CDP_URL = "http://localhost:9222"
 
 
 def adapt_caption(caption: str) -> str:
@@ -22,28 +23,51 @@ def adapt_caption(caption: str) -> str:
 
 
 def gbp_post(image_path: Path, slug: str, caption: str):
-    if not Path(SESSION_FILE).exists():
-        print("ERROR: No GBP session found. Run setup_gbp.py first.")
-        sys.exit(1)
-
     blog_url = f"{BLOG_BASE_URL}/{slug}"
     adapted_caption = adapt_caption(caption)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, channel="chrome")
-        context = browser.new_context(
-            storage_state=SESSION_FILE,
-            viewport={"width": 1280, "height": 900},
-        )
+        try:
+            browser = p.chromium.connect_over_cdp(CDP_URL)
+        except Exception:
+            print("\n  ERROR: Could not connect to Chrome.")
+            print("  Run start_chrome_gbp.bat first, then re-run this script.\n")
+            sys.exit(1)
+
+        context = browser.contexts[0] if browser.contexts else browser.new_context()
         page = context.new_page()
 
         print("\n  Opening Google Business Profile...")
         page.goto("https://business.google.com")
         page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(3000)
 
-        # Click "Add update"
+        # Save debug screenshot
+        screenshot_path = os.path.join(os.path.dirname(__file__), "gbp_debug.png")
+        page.screenshot(path=screenshot_path)
+
+        # Try multiple selectors for the post button
         print("  Opening post composer...")
-        page.get_by_role("button", name="Add update").click()
+        added = False
+        for selector in [
+            "button:has-text('Add update')",
+            "a:has-text('Add update')",
+            "[aria-label='Add update']",
+            "button:has-text('Create post')",
+            "button:has-text('Add post')",
+            "button:has-text('Post')",
+        ]:
+            try:
+                page.locator(selector).first.click(timeout=5000)
+                added = True
+                break
+            except Exception:
+                continue
+
+        if not added:
+            print(f"  ERROR: Could not find post button. Screenshot saved to {screenshot_path}")
+            sys.exit(1)
+
         page.wait_for_timeout(2000)
 
         # Upload image
@@ -55,8 +79,8 @@ def gbp_post(image_path: Path, slug: str, caption: str):
 
         # Enter caption
         print("  Entering caption...")
-        page.get_by_role("textbox").click()
-        page.get_by_role("textbox").fill(adapted_caption)
+        page.get_by_role("textbox").first.click()
+        page.get_by_role("textbox").first.fill(adapted_caption)
         page.wait_for_timeout(1000)
 
         # Add "Learn more" button
@@ -76,7 +100,7 @@ def gbp_post(image_path: Path, slug: str, caption: str):
         page.wait_for_timeout(5000)
         print("\n  Done. GBP update posted.\n")
 
-        browser.close()
+        page.close()
 
 
 def main():

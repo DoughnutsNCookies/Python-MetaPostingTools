@@ -1,6 +1,6 @@
 import os
-import re
 import sys
+import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -18,8 +18,21 @@ def main():
         print("  Log in fully. Session will be saved automatically once the dashboard loads.\n")
         page.goto("https://business.google.com")
 
-        # Wait until URL lands on a GBP dashboard path (after login redirect)
-        page.wait_for_url(re.compile(r"business\.google\.com/.+"), timeout=120000)
+        # Poll until the URL is an authenticated GBP dashboard (not base URL or Google accounts)
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            url = page.url
+            if (
+                "business.google.com" in url
+                and "accounts.google.com" not in url
+                and url.rstrip("/") != "https://business.google.com"
+            ):
+                break
+            page.wait_for_timeout(2000)
+        else:
+            print("ERROR: Timed out waiting for GBP login.")
+            sys.exit(1)
+
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)
 
