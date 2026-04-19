@@ -47,18 +47,22 @@ Two Canva designs are always kept up to date — page 1 of each is always the la
 | Blog Cover Image | `DAGeyipWBWU` | Converted to WEBP for the website |
 | Social Media Post | `DAGal3LsJUo` | Posted to Facebook + Instagram |
 
-Export page 1 of both as PNG using the Canva MCP `export-design` tool, then download each to a temp path (e.g. `C:\Users\schuah\AppData\Local\Temp\blog-cover.png` and `C:\Users\schuah\AppData\Local\Temp\social-post.png`).
+Export page 1 of both as PNG using the Canva MCP `export-design` tool, then download each to the tools folder:
+- `C:\Code\Python-MetaPostingTools\blog-cover.png`
+- `C:\Code\Python-MetaPostingTools\social-post.png`
+
+Delete both files after all scripts have finished.
 
 ### Step 2 — Save the blog markdown to a temp file
 
-Write the markdown content the user provided to a temp file (e.g. `C:\Users\schuah\AppData\Local\Temp\blog.md`).
+Write the markdown content the user provided to `C:\Code\Python-MetaPostingTools\blog.md`. Delete after done.
 
 ### Step 3 — Run publish.py
 
 ```bash
 cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
-python publish.py "C:\Users\schuah\AppData\Local\Temp\blog.md" "C:\Users\schuah\AppData\Local\Temp\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+python publish.py "C:\Code\Python-MetaPostingTools\blog.md" "C:\Code\Python-MetaPostingTools\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
 ```
 
 ### Step 4 — Run post.py
@@ -66,7 +70,7 @@ python publish.py "C:\Users\schuah\AppData\Local\Temp\blog.md" "C:\Users\schuah\
 Write the social media caption to `caption.txt`, then:
 
 ```bash
-python post.py "C:\Users\schuah\AppData\Local\Temp\social-post.png" <slug> --caption-file caption.txt
+python post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt
 ```
 
 ### Step 5 — After user merges the PR, sync the worktree branch

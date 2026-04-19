@@ -5,3 +5,6 @@ __pycache__/
 .env
 session.json
 caption.txt
+blog.md
+blog-cover.png
+social-post.png
