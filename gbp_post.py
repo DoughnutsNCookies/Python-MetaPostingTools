@@ -30,7 +30,7 @@ def gbp_post(image_path: Path, slug: str, caption: str):
     adapted_caption = adapt_caption(caption)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=False, channel="chrome")
         context = browser.new_context(
             storage_state=SESSION_FILE,
             viewport={"width": 1280, "height": 900},

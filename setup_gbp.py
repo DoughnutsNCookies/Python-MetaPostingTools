@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -9,14 +10,18 @@ SESSION_FILE = os.path.join(os.path.dirname(__file__), "session_gbp.json")
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=False, channel="chrome")
         context = browser.new_context(viewport={"width": 1280, "height": 900})
         page = context.new_page()
 
         print("\n  Opening Google Business Profile...")
+        print("  Log in fully. Session will be saved automatically once the dashboard loads.\n")
         page.goto("https://business.google.com")
 
-        input("  Log in fully, then press Enter to save session...")
+        # Wait until URL lands on a GBP dashboard path (after login redirect)
+        page.wait_for_url(re.compile(r"business\.google\.com/.+"), timeout=120000)
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(2000)
 
         context.storage_state(path=SESSION_FILE)
         print(f"  Session saved to {SESSION_FILE}\n")
