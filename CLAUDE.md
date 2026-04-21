@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CLI tools for the full Schuah Solutions blog publishing and social media workflow. The landing page repo lives at `C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\`.
 
-- **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
+- **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation). Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default).
 - **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page, targeting the coming Tuesday at 10:00 AM MYT. Add `--post-now` to publish immediately.
@@ -48,7 +48,7 @@ npm run lint    # ESLint with Next.js rules
 
 **Central config:** `landing-page/template.config.ts` — defines the entire color palette, fonts, metadata, and analytics IDs (GA + Facebook Pixel). Change colors/branding here first.
 
-A blog post requires three things in the landing page repo: a markdown file at `src/blogs/<slug>.md`, an entry in `src/app/paths.ts`, and a cover image at `public/blogs/<slug>.webp`. `publish.py` handles all three automatically.
+A blog post requires three things in the landing page repo: a markdown file at `src/blogs/<slug>.md`, an entry in `src/app/paths.ts`, and a cover image at `public/blogs/<slug>.webp`. `blog_publish.py` handles all three automatically.
 
 ## Testimonial Posting Workflow
 
@@ -103,12 +103,12 @@ Delete both files after all scripts have finished.
 
 Write the markdown content the user provided to `C:\Code\Python-MetaPostingTools\blog.md`. Delete after done.
 
-### Step 3 — Run publish.py
+### Step 3 — Run blog_publish.py
 
 ```bash
 cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
-python publish.py "C:\Code\Python-MetaPostingTools\blog.md" "C:\Code\Python-MetaPostingTools\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+python blog_publish.py "C:\Code\Python-MetaPostingTools\blog.md" "C:\Code\Python-MetaPostingTools\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
 ```
 
 ### Step 4 — Run meta_post.py (Meta: Facebook + Instagram)
