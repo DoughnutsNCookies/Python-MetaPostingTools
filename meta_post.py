@@ -1,5 +1,4 @@
 import argparse
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -10,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "session.json")
+SESSION_FILE = Path(r"C:\Code\Python-MetaPostingTools\sessions\session.json")
 PAGE_ID = os.getenv("META_PAGE_ID", "202884486244813")
 BLOG_BASE_URL = "https://schuahsolutions.com/blogs"
 MYT = ZoneInfo("Asia/Kuala_Lumpur")

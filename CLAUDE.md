@@ -24,7 +24,7 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-Create `.env` from `.env.example`. Run `setup.py` once to authenticate with Meta. Run `setup_linkedin_browser.py` once to authenticate with LinkedIn.
+Create `.env` from `.env.example`. Run `setup.py` once to authenticate with Meta. Run `setup_linkedin_browser.py` once to authenticate with LinkedIn. Sessions are saved to `C:\Code\Python-MetaPostingTools\sessions\` and shared across all worktrees — you only need to log in once per platform.
 
 ## Landing page
 
@@ -192,7 +192,7 @@ Branch protection on `main` requires all changes go through PRs — do not push 
 
 **`convert.py`** — TARGET_DIR is hardcoded to the main landing page path. Use `--target` to override for worktree branches. Default quality is 82; use `--force` to overwrite an existing slug.
 
-**`meta_post.py`** — Uses `session.json` (saved by `setup.py`) to restore the Meta Business Suite browser session without re-authenticating. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT (`Asia/Kuala_Lumpur`). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields. `session.json` must be in the same directory as the script being run.
+**`meta_post.py`** — Uses `sessions/session.json` (saved by `setup.py`) to restore the Meta Business Suite browser session without re-authenticating. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT (`Asia/Kuala_Lumpur`). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields. `session.json` must be in the same directory as the script being run.
 
 Key selector details for Meta Business Suite (discovered through runtime debugging — may break if Meta changes their UI):
 
@@ -202,7 +202,7 @@ Key selector details for Meta Business Suite (discovered through runtime debuggi
 - Date inputs: `input[placeholder="dd/mm/yyyy"]` — two instances (FB + IG)
 - Time inputs: `aria-label="hours"` and `aria-label="minutes"` — must use `press_sequentially()`, not `fill()`
 
-**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. Requires `session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
+**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. Requires `sessions/session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
 
 ## Session refresh
 

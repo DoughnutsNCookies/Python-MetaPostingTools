@@ -3,13 +3,12 @@ __pycache__/
 *.pyc
 *.pyo
 .env
-session.json
+sessions/
 caption.txt
 blog.md
 blog-cover.png
 social-post.png
 client_secret.json
 token_gbp.json
-session_gbp.json
 gbp_debug.png
 token_linkedin.json
