@@ -76,9 +76,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python convert.py hero.png my-new-blog-post
-  python convert.py C:/Users/schuah/Downloads/hero.png my-blog-post --quality 85
-  python convert.py hero.png existing-slug --force
+  python blog_convert.py hero.png my-new-blog-post
+  python blog_convert.py C:/Users/schuah/Downloads/hero.png my-blog-post --quality 85
+  python blog_convert.py hero.png existing-slug --force
         """,
     )
     parser.add_argument("input", help="Path to the source PNG file")

@@ -1,16 +1,15 @@
 import argparse
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "session_linkedin.json")
+SESSION_FILE = Path(r"C:\Code\Python-MetaPostingTools\sessions\session_linkedin.json")
 # Company admin page with share=true opens the post composer directly as the company
 COMPANY_POST_URL = "https://www.linkedin.com/company/99303319/admin/page-posts/published/?share=true"
 COMPANY_NAME = "Schuah Solutions"
-DEBUG_SCREENSHOT = os.path.join(os.path.dirname(__file__), "debug_linkedin.png")
+DEBUG_SCREENSHOT = Path(r"C:\Code\Python-MetaPostingTools\sessions\debug_linkedin.png")
 
 
 def cdp_click(page, x, y):

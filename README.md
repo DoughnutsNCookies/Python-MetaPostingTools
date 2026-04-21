@@ -4,10 +4,10 @@ A collection of Python tools for managing Schuah Solutions content.
 
 ## Tools
 
-- **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
-- **`convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
-- **`post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
-- **`setup.py`** — One-time login setup for Meta Business Suite (saves browser session)
+- **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
+- **`blog_convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
+- **`meta_post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
+- **`setup_meta_browser.py`** — One-time login setup for Meta Business Suite (saves browser session)
 
 ## One-Time Setup
 
@@ -26,16 +26,16 @@ playwright install chromium
 
 **3. Save your Meta Business Suite session (run once):**
 ```
-python setup.py
+python setup_meta_browser.py
 ```
 Log in manually including 2FA, then press Enter. Session is saved and reused automatically.
 
 ---
 
-## publish.py — Full Blog Publishing Workflow
+## blog_publish.py — Full Blog Publishing Workflow
 
 ```
-python publish.py "C:\path\to\blog.md" "C:\path\to\image.png" --worktree "C:\path\to\worktree"
+python blog_publish.py "C:\path\to\blog.md" "C:\path\to\image.png" --worktree "C:\path\to\worktree"
 ```
 
 Copies the markdown, updates `paths.ts`, converts the PNG to WEBP, commits everything, and opens a PR.
@@ -50,15 +50,15 @@ Copies the markdown, updates `paths.ts`, converts the PNG to WEBP, commits every
 
 **Example:**
 ```
-python publish.py "C:\Users\schuah\Downloads\my-post.md" "C:\Users\schuah\Downloads\cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+python blog_publish.py "C:\Users\schuah\Downloads\my-post.md" "C:\Users\schuah\Downloads\cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
 ```
 
 ---
 
-## convert.py — PNG to WEBP
+## blog_convert.py — PNG to WEBP
 
 ```
-python convert.py "C:\path\to\image.png" <slug>
+python blog_convert.py "C:\path\to\image.png" <slug>
 ```
 
 **Options:**
@@ -72,22 +72,22 @@ python convert.py "C:\path\to\image.png" <slug>
 
 **Example:**
 ```
-python convert.py "C:\Users\schuah\Downloads\Blog Cover Image.png" my-new-blog-post
+python blog_convert.py "C:\Users\schuah\Downloads\Blog Cover Image.png" my-new-blog-post
 ```
 
 ---
 
-## post.py — Schedule Social Media Post
+## meta_post.py — Schedule Social Media Post
 
 ```
-python post.py "C:\path\to\image.png" <slug> --caption-file caption.txt
+python meta_post.py "C:\path\to\image.png" <slug> --caption-file caption.txt
 ```
 
 Schedules the post for the coming Tuesday at 10:00 AM MYT on both Facebook and Instagram. Facebook post includes the blog link automatically.
 
 **Example:**
 ```
-python post.py "C:\Users\schuah\Downloads\Social Media Post.png" my-new-blog-post --caption-file caption.txt
+python meta_post.py "C:\Users\schuah\Downloads\Social Media Post.png" my-new-blog-post --caption-file caption.txt
 ```
 
 ---
@@ -96,7 +96,7 @@ python post.py "C:\Users\schuah\Downloads\Social Media Post.png" my-new-blog-pos
 
 If the Meta Business Suite session expires, re-run:
 ```
-python setup.py
+python setup_meta_browser.py
 ```
 
 ## Deactivate venv when done

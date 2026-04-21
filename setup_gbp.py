@@ -1,11 +1,11 @@
-import os
 import sys
 import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "session_gbp.json")
+SESSIONS_DIR = Path(r"C:\Code\Python-MetaPostingTools\sessions")
+SESSION_FILE = SESSIONS_DIR / "session_gbp.json"
 
 
 def main():
@@ -36,6 +36,7 @@ def main():
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)
 
+        SESSIONS_DIR.mkdir(exist_ok=True)
         context.storage_state(path=SESSION_FILE)
         print(f"  Session saved to {SESSION_FILE}\n")
         browser.close()

@@ -1,15 +1,17 @@
 """
 One-time setup: logs into Meta Business Suite manually and saves the session.
-Run this once, then use post.py for all future posts.
+Run this once, then use meta_post.py for all future posts.
 """
+
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
-SESSION_FILE = os.path.join(os.path.dirname(__file__), "session.json")
+SESSIONS_DIR = Path(r"C:\Code\Python-MetaPostingTools\sessions")
+SESSION_FILE = SESSIONS_DIR / "session.json"
 
 
 def main():
@@ -24,6 +26,7 @@ def main():
         page.goto("https://business.facebook.com")
         input("  Press Enter once you are fully logged in and can see the dashboard... ")
 
+        SESSIONS_DIR.mkdir(exist_ok=True)
         context.storage_state(path=SESSION_FILE)
         print(f"\n  Session saved to {SESSION_FILE}")
         print("  You won't need to log in again until the session expires.\n")
