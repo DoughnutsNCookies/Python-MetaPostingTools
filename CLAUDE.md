@@ -202,7 +202,7 @@ Key selector details for Meta Business Suite (discovered through runtime debuggi
 - Date inputs: `input[placeholder="dd/mm/yyyy"]` — two instances (FB + IG)
 - Time inputs: `aria-label="hours"` and `aria-label="minutes"` — must use `press_sequentially()`, not `fill()`
 
-**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. Requires `sessions/session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
+**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT. Requires `sessions/session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
 
 ## Session refresh
 
