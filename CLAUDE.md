@@ -8,7 +8,7 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
 
 - **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
-- **`post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation). Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default).
+- **`meta_post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation). Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default).
 - **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page, targeting the coming Tuesday at 10:00 AM MYT. Add `--post-now` to publish immediately.
 - **`setup.py`** — One-time login helper: opens a browser for manual Meta login + 2FA, then saves the session to `session.json` for reuse
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
@@ -65,14 +65,14 @@ Export page 1 as PNG and download to:
 
 Delete after done.
 
-### Step 2 — Run post.py
+### Step 2 — Run meta_post.py
 
 Write the caption to `caption.txt`, then:
 
 ```bash
 cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
-python post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+python meta_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
 ```
 
 That's it — no publish, no PR, no GBP reminder, no worktree sync.
@@ -111,13 +111,13 @@ venv\Scripts\activate
 python publish.py "C:\Code\Python-MetaPostingTools\blog.md" "C:\Code\Python-MetaPostingTools\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
 ```
 
-### Step 4 — Run post.py (Meta: Facebook + Instagram)
+### Step 4 — Run meta_post.py (Meta: Facebook + Instagram)
 
 Write the social media caption to `caption.txt`, then:
 
 ```bash
 # Blog post (schedules Tuesday, appends blog link automatically)
-python post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt --type blog
+python meta_post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt --type blog
 ```
 
 **Important:** `--type` is required — there is no default. Omitting it will error. Always pass it explicitly.
@@ -128,7 +128,7 @@ python post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --captio
 python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt
 ```
 
-Both post.py and linkedin_post.py schedule for the coming Tuesday at 10:00 AM MYT by default.
+Both meta_post.py and linkedin_post.py schedule for the coming Tuesday at 10:00 AM MYT by default.
 
 ### Step 5 — After user merges the PR, remind them to post to GBP manually
 
@@ -192,7 +192,7 @@ Branch protection on `main` requires all changes go through PRs — do not push 
 
 **`convert.py`** — TARGET_DIR is hardcoded to the main landing page path. Use `--target` to override for worktree branches. Default quality is 82; use `--force` to overwrite an existing slug.
 
-**`post.py`** — Uses `session.json` (saved by `setup.py`) to restore the Meta Business Suite browser session without re-authenticating. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT (`Asia/Kuala_Lumpur`). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields. `session.json` must be in the same directory as the script being run.
+**`meta_post.py`** — Uses `session.json` (saved by `setup.py`) to restore the Meta Business Suite browser session without re-authenticating. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT (`Asia/Kuala_Lumpur`). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields. `session.json` must be in the same directory as the script being run.
 
 Key selector details for Meta Business Suite (discovered through runtime debugging — may break if Meta changes their UI):
 
@@ -206,6 +206,6 @@ Key selector details for Meta Business Suite (discovered through runtime debuggi
 
 ## Session refresh
 
-If `post.py` fails to load Meta Business Suite properly, the session has likely expired. Re-run `setup.py`.
+If `meta_post.py` fails to load Meta Business Suite properly, the session has likely expired. Re-run `setup.py`.
 
 If `linkedin_post.py` fails with an auth error or redirects to the login page, the LinkedIn session has expired. Re-run `setup_linkedin_browser.py` from a terminal.

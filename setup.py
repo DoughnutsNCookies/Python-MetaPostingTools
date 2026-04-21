@@ -1,6 +1,6 @@
 """
 One-time setup: logs into Meta Business Suite manually and saves the session.
-Run this once, then use post.py for all future posts.
+Run this once, then use meta_post.py for all future posts.
 """
 
 from playwright.sync_api import sync_playwright

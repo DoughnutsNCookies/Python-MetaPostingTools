@@ -6,7 +6,7 @@ A collection of Python tools for managing Schuah Solutions content.
 
 - **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
-- **`post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
+- **`meta_post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
 - **`setup.py`** — One-time login setup for Meta Business Suite (saves browser session)
 
 ## One-Time Setup
@@ -77,17 +77,17 @@ python convert.py "C:\Users\schuah\Downloads\Blog Cover Image.png" my-new-blog-p
 
 ---
 
-## post.py — Schedule Social Media Post
+## meta_post.py — Schedule Social Media Post
 
 ```
-python post.py "C:\path\to\image.png" <slug> --caption-file caption.txt
+python meta_post.py "C:\path\to\image.png" <slug> --caption-file caption.txt
 ```
 
 Schedules the post for the coming Tuesday at 10:00 AM MYT on both Facebook and Instagram. Facebook post includes the blog link automatically.
 
 **Example:**
 ```
-python post.py "C:\Users\schuah\Downloads\Social Media Post.png" my-new-blog-post --caption-file caption.txt
+python meta_post.py "C:\Users\schuah\Downloads\Social Media Post.png" my-new-blog-post --caption-file caption.txt
 ```
 
 ---
