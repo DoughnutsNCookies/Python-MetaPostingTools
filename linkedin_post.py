@@ -112,7 +112,18 @@ def get_coming_tuesday_10am() -> datetime:
     )
 
 
-def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True):
+def get_coming_thursday_10am() -> datetime:
+    """Return the next Thursday at 10:00 AM (never today even if today is Thursday)."""
+    today = datetime.now()
+    days_until_thursday = (3 - today.weekday()) % 7  # 3 = Thursday
+    if days_until_thursday == 0:
+        days_until_thursday = 7  # If today is Thursday, use next week's
+    return (today + timedelta(days=days_until_thursday)).replace(
+        hour=10, minute=0, second=0, microsecond=0
+    )
+
+
+def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post_type: str = "blog"):
     if not Path(SESSION_FILE).exists():
         print("ERROR: No LinkedIn session found. Run setup_linkedin_browser.py first.")
         sys.exit(1)
@@ -201,7 +212,7 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True):
                 cdp_click(page, schedule_btn['x'], schedule_btn['y'])
                 page.wait_for_timeout(2000)
 
-                target = get_coming_tuesday_10am()
+                target = get_coming_thursday_10am() if post_type == "testimonial" else get_coming_tuesday_10am()
                 print(f"  Scheduling for {target.strftime('%A %d %B %Y at %I:%M %p')}...")
 
                 # Find all visible <input> elements via BFS over shadow roots
@@ -360,7 +371,8 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True):
 
         page.wait_for_timeout(4000)
         page.screenshot(path=DEBUG_SCREENSHOT)
-        target_str = get_coming_tuesday_10am().strftime('%A %d %B at %I:%M %p') if schedule else "now"
+        target_fn = get_coming_thursday_10am if post_type == "testimonial" else get_coming_tuesday_10am
+        target_str = target_fn().strftime('%A %d %B at %I:%M %p') if schedule else "now"
         print(f"\n  Done. LinkedIn post scheduled for {target_str} as {COMPANY_NAME}.\n")
         browser.close()
 
@@ -368,10 +380,12 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True):
 def main():
     parser = argparse.ArgumentParser(description="Post to LinkedIn company page via browser.")
     parser.add_argument("image", help="Path to the image file (PNG/JPG/WEBP)")
-    parser.add_argument("slug", help="Blog slug (unused, kept for consistent CLI interface)")
+    parser.add_argument("slug", nargs="?", default="", help="Blog slug (unused for testimonials)")
     parser.add_argument("--caption-file", required=True, help="Path to a .txt file containing the caption")
     parser.add_argument("--post-now", action="store_true",
-                        help="Post immediately instead of scheduling for coming Tuesday 10am")
+                        help="Post immediately instead of scheduling")
+    parser.add_argument("--type", dest="post_type", choices=["blog", "testimonial"], required=True,
+                        help="Post type: 'blog' (Tuesday) or 'testimonial' (Thursday)")
     args = parser.parse_args()
 
     image_path = Path(args.image)
@@ -385,7 +399,7 @@ def main():
         sys.exit(1)
 
     caption = caption_path.read_text(encoding="utf-8").strip()
-    post_to_linkedin(image_path, caption, schedule=not args.post_now)
+    post_to_linkedin(image_path, caption, schedule=not args.post_now, post_type=args.post_type)
 
 
 if __name__ == "__main__":

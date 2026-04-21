@@ -9,7 +9,7 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
 - **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
 - **`post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation). Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default).
-- **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page, targeting the coming Tuesday at 10:00 AM MYT. Add `--post-now` to publish immediately.
+- **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page. Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default). Add `--post-now` to publish immediately.
 - **`setup.py`** — One-time login helper: opens a browser for manual Meta login + 2FA, then saves the session to `session.json` for reuse
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
@@ -49,35 +49,6 @@ npm run lint    # ESLint with Next.js rules
 **Central config:** `landing-page/template.config.ts` — defines the entire color palette, fonts, metadata, and analytics IDs (GA + Facebook Pixel). Change colors/branding here first.
 
 A blog post requires three things in the landing page repo: a markdown file at `src/blogs/<slug>.md`, an entry in `src/app/paths.ts`, and a cover image at `public/blogs/<slug>.webp`. `publish.py` handles all three automatically.
-
-## Testimonial Posting Workflow
-
-The user sends the social media caption. Claude handles everything else automatically.
-
-### Step 1 — Export image from Canva (Claude does this via MCP)
-
-| Design | Canva ID | Purpose |
-|--------|----------|---------|
-| Social Media Post | `DAGal3LsJUo` | Posted to Facebook + Instagram |
-
-Export page 1 as PNG and download to:
-- `C:\Code\Python-MetaPostingTools\social-post.png`
-
-Delete after done.
-
-### Step 2 — Run post.py
-
-Write the caption to `caption.txt`, then:
-
-```bash
-cd "C:\Code\Python-MetaPostingTools"
-venv\Scripts\activate
-python post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
-```
-
-That's it — no publish, no PR, no GBP reminder, no worktree sync.
-
----
 
 ## Blog Publishing Workflow
 
@@ -172,6 +143,45 @@ date: "DD MONTH YYYY"
 Content here...
 ```
 
+## Testimonial Posting Workflow
+
+The user sends the social media caption. Claude handles everything else automatically.
+
+### Step 1 — Export image from Canva (Claude does this via MCP)
+
+| Design | Canva ID | Purpose |
+|--------|----------|---------|
+| Social Media Post | `DAGal3LsJUo` | Posted to Facebook, Instagram, and LinkedIn |
+
+Export page 1 as PNG and download to:
+- `C:\Code\Python-MetaPostingTools\social-post.png`
+
+Delete after done.
+
+### Step 2 — Run post.py (Meta: Facebook + Instagram)
+
+Write the caption to `caption.txt`, then:
+
+```bash
+cd "C:\Code\Python-MetaPostingTools"
+source venv/Scripts/activate
+python ".claude/worktrees/<worktree-name>/post.py" "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+```
+
+> **Note:** `post.py` looks for `session.json` beside itself. Copy `C:\Code\Python-MetaPostingTools\session.json` into the worktree directory before running, then delete it after.
+
+### Step 3 — Run linkedin_post.py
+
+```bash
+python -u ".claude/worktrees/<worktree-name>/linkedin_post.py" "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+```
+
+> **Note:** `linkedin_post.py` looks for `session_linkedin.json` beside itself. Copy `C:\Code\Python-MetaPostingTools\session_linkedin.json` into the worktree directory before running, then delete it after.
+
+That's it — no publish, no PR, no GBP reminder, no worktree sync.
+
+---
+
 ## PR Workflow
 
 Claude Code works on a worktree branch (`claude/<session-id>`). The standard flow:
@@ -202,7 +212,7 @@ Key selector details for Meta Business Suite (discovered through runtime debuggi
 - Date inputs: `input[placeholder="dd/mm/yyyy"]` — two instances (FB + IG)
 - Time inputs: `aria-label="hours"` and `aria-label="minutes"` — must use `press_sequentially()`, not `fill()`
 
-**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. Requires `session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
+**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT. `--type` is required, no default. Requires `session_linkedin.json` in the same directory as the script — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
 
 ## Session refresh
 
