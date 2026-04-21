@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SESSIONS_DIR = Path(r"C:\Code\Python-MetaPostingTools\sessions")
-SESSION_FILE = SESSIONS_DIR / "session.json"
+SESSION_FILE = SESSIONS_DIR / "session_meta.json"
 
 
 def main():
