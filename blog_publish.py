@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from convert import convert, DEFAULT_QUALITY
+from blog_convert import convert, DEFAULT_QUALITY
 
 GH_CLI = r"C:\Program Files\GitHub CLI\gh.exe"
 LANDING_PAGE = Path(r"C:\Code\WebApp-SchuahSolutions-WebDevLandingPage")

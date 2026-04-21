@@ -5,7 +5,7 @@ A collection of Python tools for managing Schuah Solutions content.
 ## Tools
 
 - **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
-- **`convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
+- **`blog_convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
 - **`setup_meta_browser.py`** — One-time login setup for Meta Business Suite (saves browser session)
 
@@ -55,10 +55,10 @@ python blog_publish.py "C:\Users\schuah\Downloads\my-post.md" "C:\Users\schuah\D
 
 ---
 
-## convert.py — PNG to WEBP
+## blog_convert.py — PNG to WEBP
 
 ```
-python convert.py "C:\path\to\image.png" <slug>
+python blog_convert.py "C:\path\to\image.png" <slug>
 ```
 
 **Options:**
@@ -72,7 +72,7 @@ python convert.py "C:\path\to\image.png" <slug>
 
 **Example:**
 ```
-python convert.py "C:\Users\schuah\Downloads\Blog Cover Image.png" my-new-blog-post
+python blog_convert.py "C:\Users\schuah\Downloads\Blog Cover Image.png" my-new-blog-post
 ```
 
 ---
