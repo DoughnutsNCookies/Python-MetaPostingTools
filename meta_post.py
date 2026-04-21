@@ -33,7 +33,7 @@ def next_thursday_10am() -> datetime:
 
 def schedule_post(image_path: Path, caption: str, slug: str, post_type: str):
     if not Path(SESSION_FILE).exists():
-        print("ERROR: No session found. Run setup.py first.")
+        print("ERROR: No session found. Run setup_meta_browser.py first.")
         sys.exit(1)
 
     scheduled_dt = next_thursday_10am() if post_type == "testimonial" else next_tuesday_10am()

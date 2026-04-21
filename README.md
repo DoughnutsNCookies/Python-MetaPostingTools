@@ -7,7 +7,7 @@ A collection of Python tools for managing Schuah Solutions content.
 - **`publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
-- **`setup.py`** — One-time login setup for Meta Business Suite (saves browser session)
+- **`setup_meta_browser.py`** — One-time login setup for Meta Business Suite (saves browser session)
 
 ## One-Time Setup
 
@@ -26,7 +26,7 @@ playwright install chromium
 
 **3. Save your Meta Business Suite session (run once):**
 ```
-python setup.py
+python setup_meta_browser.py
 ```
 Log in manually including 2FA, then press Enter. Session is saved and reused automatically.
 
@@ -96,7 +96,7 @@ python meta_post.py "C:\Users\schuah\Downloads\Social Media Post.png" my-new-blo
 
 If the Meta Business Suite session expires, re-run:
 ```
-python setup.py
+python setup_meta_browser.py
 ```
 
 ## Deactivate venv when done
