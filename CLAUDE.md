@@ -65,7 +65,7 @@ Export page 1 as PNG and download to:
 
 Delete after done.
 
-### Step 2 — Run meta_post.py
+### Step 2 — Run meta_post.py (Facebook + Instagram)
 
 Write the caption to `caption.txt`, then:
 
@@ -73,6 +73,12 @@ Write the caption to `caption.txt`, then:
 cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
 python meta_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+```
+
+### Step 3 — Run linkedin_post.py
+
+```bash
+python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
 ```
 
 That's it — no publish, no PR, no GBP reminder, no worktree sync.
@@ -130,11 +136,13 @@ python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" <sl
 
 Both meta_post.py and linkedin_post.py schedule for the coming Tuesday at 10:00 AM MYT by default.
 
-### Step 5 — After user merges the PR, remind them to post to GBP manually
+### Step 5 — Output GBP reminder
 
-After the user confirms the PR is merged, send this reminder with ready-to-copy content:
+Immediately after all scripts finish, output this reminder with ready-to-copy content (do not wait for the PR to be merged):
 
 ---
+
+**Google Business Profile — Post manually**
 
 **Image:** `C:\Code\Python-MetaPostingTools\social-post.png`
 
@@ -154,7 +162,7 @@ https://schuahsolutions.com/blogs/<slug>
 
 Once GBP API access is approved, this step will be automated via `gbp_post.py`.
 
-### Step 6 — Sync the worktree branch
+### Step 6 — After user merges the PR, sync the worktree branch
 
 ```bash
 git fetch origin main && git merge origin/main --no-edit && git push origin HEAD:<branch-name>

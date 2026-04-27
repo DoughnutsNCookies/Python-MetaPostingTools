@@ -249,7 +249,13 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                 time_str = target.strftime('%I:%M %p').lstrip('0')  # e.g. "10:00 AM"
 
                 all_inputs = get_all_inputs()
+
+                # Find date input: has '/' in value or placeholder
                 date_inp = next((i for i in all_inputs if '/' in i['value'] and len(i['value']) >= 6), None)
+                if not date_inp:
+                    date_inp = next((i for i in all_inputs if '/' in i['placeholder']), None)
+
+                # Find time input: has AM/PM in value
                 time_inp = next((i for i in all_inputs
                                  if 'AM' in i['value'].upper() or 'PM' in i['value'].upper()), None)
 
@@ -259,6 +265,8 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                     cdp_click(page, date_inp['x'], date_inp['y'])
                     page.wait_for_timeout(800)
 
+                    target_month = target.strftime('%B')  # e.g. "April"
+                    target_year = str(target.year)
                     day_cell = page.evaluate(f"""
                         () => {{
                             const visited = new WeakSet();
@@ -268,9 +276,13 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                                 if (visited.has(root)) continue;
                                 visited.add(root);
                                 for (const el of root.querySelectorAll('button, [role="gridcell"], td')) {{
-                                    const text = (el.textContent || '').trim();
+                                    const aria = (el.getAttribute('aria-label') || '').trim();
                                     const rect = el.getBoundingClientRect();
-                                    if (text === '{target_day}' && rect.width > 0 && rect.width <= 50) {{
+                                    // Match aria-label like "April 30, 2026" or "30 April 2026"
+                                    if (rect.width > 0 && rect.width <= 50
+                                        && aria.includes('{target_day}')
+                                        && aria.includes('{target_month}')
+                                        && aria.includes('{target_year}')) {{
                                         return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
                                     }}
                                 }}
@@ -285,33 +297,38 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                     if day_cell:
                         cdp_click(page, day_cell['x'], day_cell['y'])
                         page.wait_for_timeout(500)
+                        page.keyboard.press("Tab")  # dismiss calendar, move focus to time field
+                        page.wait_for_timeout(800)
                     else:
                         print(f"  WARNING: Day {target_day} not found in calendar")
+                else:
+                    print("  WARNING: Date input not found")
 
-                # --- Set TIME: click field → dropdown opens → scrollIntoView + click target ---
-                # Re-fetch inputs as time field coords may have shifted after date selection
+                # Re-fetch after date entry as coords may shift
                 all_inputs = get_all_inputs()
                 time_inp = next((i for i in all_inputs
                                  if 'AM' in i['value'].upper() or 'PM' in i['value'].upper()), None)
+
+                # --- Set TIME: click field → dropdown opens → scrollIntoView + click target ---
                 if time_inp:
                     print(f"  Setting time to {time_str}...")
                     cdp_click(page, time_inp['x'], time_inp['y'])
                     page.wait_for_timeout(700)
 
-                    time_coords = page.evaluate(f"""
+                    # Try native <select> first
+                    select_info = page.evaluate(f"""
                         () => {{
-                            const target = '{time_str}';
                             const visited = new WeakSet();
                             const queue = [document];
                             while (queue.length) {{
                                 const root = queue.shift();
                                 if (visited.has(root)) continue;
                                 visited.add(root);
-                                for (const el of root.querySelectorAll('li, [role="option"], [role="listitem"]')) {{
-                                    if ((el.textContent || '').trim() === target) {{
-                                        el.scrollIntoView({{block: 'center'}});
-                                        const rect = el.getBoundingClientRect();
-                                        return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
+                                for (const sel of root.querySelectorAll('select')) {{
+                                    const rect = sel.getBoundingClientRect();
+                                    if (rect.width > 0) {{
+                                        const opts = Array.from(sel.options).map(o => o.text.trim());
+                                        return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2, options: opts}};
                                     }}
                                 }}
                                 root.querySelectorAll('*').forEach(el => {{
@@ -322,11 +339,71 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                             return null;
                         }}
                     """)
-                    if time_coords:
-                        cdp_click(page, time_coords['x'], time_coords['y'])
+
+                    if select_info:
+                        print(f"  Found native select with options: {select_info['options'][:5]}...")
+                        # Use Playwright select_option on the select element
+                        page.evaluate(f"""
+                            () => {{
+                                const visited = new WeakSet();
+                                const queue = [document];
+                                while (queue.length) {{
+                                    const root = queue.shift();
+                                    if (visited.has(root)) continue;
+                                    visited.add(root);
+                                    for (const sel of root.querySelectorAll('select')) {{
+                                        const rect = sel.getBoundingClientRect();
+                                        if (rect.width > 0) {{
+                                            for (const opt of sel.options) {{
+                                                if (opt.text.trim() === '{time_str}') {{
+                                                    sel.value = opt.value;
+                                                    sel.dispatchEvent(new Event('change', {{bubbles: true}}));
+                                                    return;
+                                                }}
+                                            }}
+                                        }}
+                                    }}
+                                    root.querySelectorAll('*').forEach(el => {{
+                                        if (el.shadowRoot && !visited.has(el.shadowRoot))
+                                            queue.push(el.shadowRoot);
+                                    }});
+                                }}
+                            }}
+                        """)
                         page.wait_for_timeout(500)
                     else:
-                        print(f"  WARNING: Time option '{time_str}' not found in dropdown")
+                        # Fall back to li/option dropdown approach
+                        time_coords = page.evaluate(f"""
+                            () => {{
+                                const target = '{time_str}';
+                                const visited = new WeakSet();
+                                const queue = [document];
+                                while (queue.length) {{
+                                    const root = queue.shift();
+                                    if (visited.has(root)) continue;
+                                    visited.add(root);
+                                    for (const el of root.querySelectorAll('li, [role="option"], [role="listitem"]')) {{
+                                        if ((el.textContent || '').trim() === target) {{
+                                            el.scrollIntoView({{block: 'center'}});
+                                            const rect = el.getBoundingClientRect();
+                                            return {{x: rect.x + rect.width/2, y: rect.y + rect.height/2}};
+                                        }}
+                                    }}
+                                    root.querySelectorAll('*').forEach(el => {{
+                                        if (el.shadowRoot && !visited.has(el.shadowRoot))
+                                            queue.push(el.shadowRoot);
+                                    }});
+                                }}
+                                return null;
+                            }}
+                        """)
+                        if time_coords:
+                            cdp_click(page, time_coords['x'], time_coords['y'])
+                            page.wait_for_timeout(500)
+                        else:
+                            print(f"  WARNING: Time option '{time_str}' not found in dropdown")
+                else:
+                    print("  WARNING: Time input not found")
 
                 page.wait_for_timeout(500)
                 page.screenshot(path=DEBUG_SCREENSHOT)
