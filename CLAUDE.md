@@ -65,7 +65,7 @@ Export page 1 as PNG and download to:
 
 Delete after done.
 
-### Step 2 — Run meta_post.py
+### Step 2 — Run meta_post.py (Facebook + Instagram)
 
 Write the caption to `caption.txt`, then:
 
@@ -73,6 +73,12 @@ Write the caption to `caption.txt`, then:
 cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
 python meta_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+```
+
+### Step 3 — Run linkedin_post.py
+
+```bash
+python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
 ```
 
 That's it — no publish, no PR, no GBP reminder, no worktree sync.
