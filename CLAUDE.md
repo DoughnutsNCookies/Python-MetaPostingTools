@@ -63,7 +63,11 @@ The user sends the social media caption. Claude handles everything else automati
 Export page 1 as PNG and download to:
 - `C:\Code\Python-MetaPostingTools\social-post.png`
 
-Delete after done.
+Before deleting, copy to Downloads as a named archive:
+```bash
+cp "C:\Code\Python-MetaPostingTools\social-post.png" "C:\Users\schuah\Downloads\testimonial-YYYY-MM-DD.png"
+```
+Use today's date for the filename (e.g. `testimonial-2026-05-02.png`). Then delete the original.
 
 ### Step 2 — Run meta_post.py (Facebook + Instagram)
 
@@ -103,7 +107,11 @@ Export page 1 of both as PNG using the Canva MCP `export-design` tool, then down
 - `C:\Code\Python-MetaPostingTools\blog-cover.png`
 - `C:\Code\Python-MetaPostingTools\social-post.png`
 
-Delete both files after all scripts have finished.
+Before deleting, copy `social-post.png` to Downloads as a named archive:
+```bash
+cp "C:\Code\Python-MetaPostingTools\social-post.png" "C:\Users\schuah\Downloads\<slug>.png"
+```
+Then delete both files.
 
 ### Step 2 — Save the blog markdown to a temp file
 
