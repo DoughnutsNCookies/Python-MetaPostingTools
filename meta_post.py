@@ -60,7 +60,7 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str):
         # Upload image via file chooser
         print("  Uploading image...")
         with page.expect_file_chooser() as fc_info:
-            page.get_by_role("button", name="Add photo/video").click()
+            page.get_by_role("button", name="Add Photo", exact=True).click()
         file_chooser = fc_info.value
         file_chooser.set_files(str(image_path))
         page.wait_for_timeout(3000)
