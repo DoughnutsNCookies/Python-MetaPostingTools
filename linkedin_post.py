@@ -101,23 +101,23 @@ def find_button(shadow_buttons, *keywords, exclude=None):
 
 
 def get_coming_tuesday_10am() -> datetime:
-    """Return the next Tuesday at 10:00 AM (never today even if today is Tuesday)."""
-    today = datetime.now()
-    days_until_tuesday = (1 - today.weekday()) % 7  # 1 = Tuesday
-    if days_until_tuesday == 0:
-        days_until_tuesday = 7  # If today is Tuesday, use next week's
-    return (today + timedelta(days=days_until_tuesday)).replace(
+    """Return the next Tuesday at 10:00 AM. Uses today if it's Tuesday and before 10 AM."""
+    now = datetime.now()
+    days_ahead = (1 - now.weekday()) % 7  # 1 = Tuesday
+    if days_ahead == 0 and now.hour >= 10:
+        days_ahead = 7
+    return (now + timedelta(days=days_ahead)).replace(
         hour=10, minute=0, second=0, microsecond=0
     )
 
 
 def get_coming_thursday_10am() -> datetime:
-    """Return the next Thursday at 10:00 AM (never today even if today is Thursday)."""
-    today = datetime.now()
-    days_until_thursday = (3 - today.weekday()) % 7  # 3 = Thursday
-    if days_until_thursday == 0:
-        days_until_thursday = 7  # If today is Thursday, use next week's
-    return (today + timedelta(days=days_until_thursday)).replace(
+    """Return the next Thursday at 10:00 AM. Uses today if it's Thursday and before 10 AM."""
+    now = datetime.now()
+    days_ahead = (3 - now.weekday()) % 7  # 3 = Thursday
+    if days_ahead == 0 and now.hour >= 10:
+        days_ahead = 7
+    return (now + timedelta(days=days_ahead)).replace(
         hour=10, minute=0, second=0, microsecond=0
     )
 
