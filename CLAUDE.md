@@ -10,7 +10,7 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
 - **`blog_convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation). Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default).
 - **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page, targeting the coming Tuesday at 10:00 AM MYT. Add `--post-now` to publish immediately.
-- **`setup_meta_browser.py`** — One-time login helper: opens a browser for manual Meta login + 2FA, then saves the session to `sessions/session_meta.json` for reuse
+- **`setup_meta_browser.py`** — Attaches to a Chrome running with `--remote-debugging-port=9222` (which you log into manually) and saves the session to `sessions/session_meta.json`. Uses CDP attach because Google OAuth blocks Playwright's own launched Chromium.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
 - **`setup_gbp.py`** — ⚠️ NOT YET ACTIVE. GBP auth setup, to be wired up once API access is granted.
@@ -222,6 +222,11 @@ Key selector details for Meta Business Suite (discovered through runtime debuggi
 
 ## Session refresh
 
-If `meta_post.py` fails to load Meta Business Suite properly, the session has likely expired. Re-run `setup_meta_browser.py`.
+If `meta_post.py` fails to load Meta Business Suite properly, the session has likely expired. To refresh:
+
+1. Close all Chrome windows.
+2. In PowerShell: `& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\Code\Python-MetaPostingTools\sessions\chrome_profile_meta"`
+3. In that Chrome, log into https://business.facebook.com (Google OAuth works here).
+4. Run `python setup_meta_browser.py` from the venv — it attaches to that Chrome via CDP and saves the session.
 
 If `linkedin_post.py` fails with an auth error or redirects to the login page, the LinkedIn session has expired. Re-run `setup_linkedin_browser.py` from a terminal.
