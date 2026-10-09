@@ -1,9 +1,11 @@
 import argparse
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+
+from scheduling import add_schedule_args, target_datetime
 
 SESSION_FILE = Path(r"C:\Code\Python-MetaPostingTools\sessions\session_linkedin.json")
 # Company admin page with share=true opens the post composer directly as the company
@@ -100,29 +102,7 @@ def find_button(shadow_buttons, *keywords, exclude=None):
     return None
 
 
-def get_coming_tuesday_10am() -> datetime:
-    """Return the next Tuesday at 10:00 AM. Uses today if it's Tuesday and before 10 AM."""
-    now = datetime.now()
-    days_ahead = (1 - now.weekday()) % 7  # 1 = Tuesday
-    if days_ahead == 0 and now.hour >= 10:
-        days_ahead = 7
-    return (now + timedelta(days=days_ahead)).replace(
-        hour=10, minute=0, second=0, microsecond=0
-    )
-
-
-def get_coming_thursday_10am() -> datetime:
-    """Return the next Thursday at 10:00 AM. Uses today if it's Thursday and before 10 AM."""
-    now = datetime.now()
-    days_ahead = (3 - now.weekday()) % 7  # 3 = Thursday
-    if days_ahead == 0 and now.hour >= 10:
-        days_ahead = 7
-    return (now + timedelta(days=days_ahead)).replace(
-        hour=10, minute=0, second=0, microsecond=0
-    )
-
-
-def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post_type: str = "blog"):
+def post_to_linkedin(image_path: Path, caption: str, target: datetime, schedule: bool = True):
     if not Path(SESSION_FILE).exists():
         print("ERROR: No LinkedIn session found. Run setup_linkedin_browser.py first.")
         sys.exit(1)
@@ -211,7 +191,6 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                 cdp_click(page, schedule_btn['x'], schedule_btn['y'])
                 page.wait_for_timeout(2000)
 
-                target = get_coming_thursday_10am() if post_type == "testimonial" else get_coming_tuesday_10am()
                 print(f"  Scheduling for {target.strftime('%A %d %B %Y at %I:%M %p')}...")
 
                 # Find all visible <input> elements via BFS over shadow roots
@@ -267,7 +246,7 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
 
                     target_month = target.strftime('%B')  # e.g. "April"
                     target_year = str(target.year)
-                    day_cell = page.evaluate(f"""
+                    find_day_cell = lambda: page.evaluate(f"""
                         () => {{
                             const visited = new WeakSet();
                             const queue = [document];
@@ -294,13 +273,25 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
                             return null;
                         }}
                     """)
+                    # The calendar opens on the current month; page forward for later months.
+                    day_cell = find_day_cell()
+                    for _ in range(3):
+                        if day_cell:
+                            break
+                        next_month = find_button(get_shadow_buttons(page), "next month")
+                        if not next_month:
+                            break
+                        cdp_click(page, next_month['x'], next_month['y'])
+                        page.wait_for_timeout(600)
+                        day_cell = find_day_cell()
                     if day_cell:
                         cdp_click(page, day_cell['x'], day_cell['y'])
                         page.wait_for_timeout(500)
                         page.keyboard.press("Tab")  # dismiss calendar, move focus to time field
                         page.wait_for_timeout(800)
                     else:
-                        print(f"  WARNING: Day {target_day} not found in calendar")
+                        browser.close()
+                        sys.exit(f"ERROR: {target_month} {target_day} not found in the calendar — nothing was scheduled.")
                 else:
                     print("  WARNING: Date input not found")
 
@@ -447,8 +438,7 @@ def post_to_linkedin(image_path: Path, caption: str, schedule: bool = True, post
 
         page.wait_for_timeout(4000)
         page.screenshot(path=DEBUG_SCREENSHOT)
-        target_fn = get_coming_thursday_10am if post_type == "testimonial" else get_coming_tuesday_10am
-        target_str = target_fn().strftime('%A %d %B at %I:%M %p') if schedule else "now"
+        target_str = target.strftime('%A %d %B at %I:%M %p') if schedule else "now"
         print(f"\n  Done. LinkedIn post scheduled for {target_str} as {COMPANY_NAME}.\n")
         browser.close()
 
@@ -460,8 +450,7 @@ def main():
     parser.add_argument("--caption-file", required=True, help="Path to a .txt file containing the caption")
     parser.add_argument("--post-now", action="store_true",
                         help="Post immediately instead of scheduling")
-    parser.add_argument("--type", dest="post_type", choices=["blog", "testimonial"], required=True,
-                        help="Post type: 'blog' (Tuesday) or 'testimonial' (Thursday)")
+    add_schedule_args(parser)
     args = parser.parse_args()
 
     image_path = Path(args.image)
@@ -475,7 +464,8 @@ def main():
         sys.exit(1)
 
     caption = caption_path.read_text(encoding="utf-8").strip()
-    post_to_linkedin(image_path, caption, schedule=not args.post_now, post_type=args.post_type)
+    target = target_datetime(args.post_type, args.weekday, args.week)
+    post_to_linkedin(image_path, caption, target, schedule=not args.post_now)
 
 
 if __name__ == "__main__":
