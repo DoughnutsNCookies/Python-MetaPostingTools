@@ -98,7 +98,7 @@ That's it — no publish, no PR, no GBP reminder, no worktree sync.
 
 The user sends a batch of finished client websites (usually 4), each with the business name, domain, some info about the business, and an image. Each one is scheduled a week apart: the first on the coming Wednesday, the next on the Wednesday after, and so on. If the user asks for Thursdays (or any other day), add `--weekday thu` to every command.
 
-No Canva export — use the images the user provides. No blog, no PR, no GBP reminder.
+No Canva export — use the images the user provides. No blog, no PR, no GBP reminder. `meta_post.py` goes through Meta Business Suite, so each post lands on both Facebook and Instagram — that's intended.
 
 ### Caption template
 
@@ -111,7 +111,7 @@ Visit at [website domain]
 
 🔍 Looking to get a website for your own business?
 
-🔥 We’re running a promotion of only RM375 (instead of RM2840) for a professional website to celebrate the new year!
+🔥 We’re running a promotion of only RM375 (instead of RM2840) for a professional website to celebrate our anniversary!
 
 ⭐ No down payments and hidden costs. Guaranteed.
 ```
