@@ -8,8 +8,13 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
 
 - **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`blog_convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
-- **`meta_post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation). Blogs target Tuesday 10:00 AM MYT, testimonials target Thursday 10:00 AM MYT. Use `--type blog` or `--type testimonial` (required, no default).
-- **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page, targeting the coming Tuesday at 10:00 AM MYT. Add `--post-now` to publish immediately.
+- **`meta_post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation).
+- **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page. Add `--post-now` to publish immediately.
+- **`scheduling.py`** — Shared by both posting scripts. Both take the same flags:
+  - `--type blog|testimonial|portfolio` (required) — default day Tuesday / Thursday / Wednesday, always 10:00 AM MYT
+  - `--weekday mon..sun` — override the default day (e.g. `--weekday thu`)
+  - `--week N` — 1 = the coming occurrence of that day (today counts if it's that day and before 10 AM), 2 = the week after, etc.
+  - Always pass identical flags to both scripts so Meta and LinkedIn land on the same date.
 - **`setup_meta_browser.py`** — Attaches to a Chrome running with `--remote-debugging-port=9222` (which you log into manually) and saves the session to `sessions/session_meta.json`. Uses CDP attach because Google OAuth blocks Playwright's own launched Chromium.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
@@ -89,6 +94,45 @@ That's it — no publish, no PR, no GBP reminder, no worktree sync.
 
 ---
 
+## Portfolio Posting Workflow
+
+The user sends a batch of finished client websites (usually 4), each with the business name, domain, some info about the business, and an image. Each one is scheduled a week apart: the first on the coming Wednesday, the next on the Wednesday after, and so on. If the user asks for Thursdays (or any other day), add `--weekday thu` to every command.
+
+No Canva export — use the images the user provides. No blog, no PR, no GBP reminder.
+
+### Caption template
+
+```
+🎉 [Business] has now officially launched its website with us!
+
+[Short description about the business, 1-2 lines]
+
+Visit at [website domain]
+
+🔍 Looking to get a website for your own business?
+
+🔥 We’re running a promotion of only RM375 (instead of RM2840) for a professional website to celebrate the new year!
+
+⭐ No down payments and hidden costs. Guaranteed.
+```
+
+Use the user's description if they give one; otherwise write 1-2 plain lines from the facts they gave (what the business does, where). No marketing buzzwords.
+
+### For each portfolio (N = 1, 2, 3, 4 in the order given)
+
+Write its caption to `caption.txt`, then:
+
+```bash
+cd "C:\Code\Python-MetaPostingTools"
+venv\Scripts\activate
+python meta_post.py "<image path>" --caption-file caption.txt --type portfolio --week N
+python -u linkedin_post.py "<image path>" --caption-file caption.txt --type portfolio --week N
+```
+
+Finish one portfolio on both platforms before starting the next. At the end, list each business with its scheduled date.
+
+---
+
 ## Blog Publishing Workflow
 
 The user sends only the blog markdown content. Claude handles everything else automatically.
@@ -139,10 +183,10 @@ python meta_post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --c
 ### Step 4b — Run linkedin_post.py
 
 ```bash
-python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt
+python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" <slug> --caption-file caption.txt --type blog
 ```
 
-Both meta_post.py and linkedin_post.py schedule for the coming Tuesday at 10:00 AM MYT by default.
+Both schedule for the coming Tuesday at 10:00 AM MYT.
 
 ### Step 5 — Output GBP reminder
 
@@ -208,17 +252,17 @@ Branch protection on `main` requires all changes go through PRs — do not push 
 
 **`blog_convert.py`** — TARGET_DIR is hardcoded to the main landing page path. Use `--target` to override for worktree branches. Default quality is 82; use `--force` to overwrite an existing slug.
 
-**`meta_post.py`** — Uses `sessions/session_meta.json` (saved by `setup_meta_browser.py`) to restore the Meta Business Suite browser session without re-authenticating. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT (`Asia/Kuala_Lumpur`). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields.
+**`meta_post.py`** — Uses `sessions/session_meta.json` (saved by `setup_meta_browser.py`) to restore the Meta Business Suite browser session without re-authenticating. Schedule date comes from `scheduling.py` (see above). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial and portfolio posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields.
 
 Key selector details for Meta Business Suite (discovered through runtime debugging — may break if Meta changes their UI):
 
-- File upload: `expect_file_chooser()` triggered by the "Add photo/video" button
+- File upload: `expect_file_chooser()` triggered by the upload button. Meta keeps renaming it ("Add photo/video", "Add Photo", ...), so the script tries every label in `PHOTO_BUTTON_NAMES` and prints the page's buttons if none match — add the new label there.
 - Caption field: `get_by_label("Text")`
 - Schedule toggle: `get_by_text("Set date and time")`
 - Date inputs: `input[placeholder="dd/mm/yyyy"]` — two instances (FB + IG)
 - Time inputs: `aria-label="hours"` and `aria-label="minutes"` — must use `press_sequentially()`, not `fill()`
 
-**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell and using `scrollIntoView()` on the time dropdown option. `--type blog` schedules for next Tuesday, `--type testimonial` for next Thursday — both at 10:00 AM MYT. Requires `sessions/session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
+**`linkedin_post.py`** — Opens the Schuah Solutions company admin composer directly (`/company/99303319/admin/page-posts/published/?share=true`) so no identity switching is needed. Uses Playwright + CDP `Input.dispatchMouseEvent` to bypass LinkedIn's `interop-outlet` shadow DOM, which blocks normal Playwright clicks. Scheduling works by clicking the calendar day cell (paging forward with the calendar's "next month" button when the date is in a later month) and using `scrollIntoView()` on the time dropdown option. If the day can't be found it exits with an error instead of scheduling on the wrong date. Requires `sessions/session_linkedin.json` — if missing or expired, run `setup_linkedin_browser.py` from a real terminal.
 
 ## Session refresh
 

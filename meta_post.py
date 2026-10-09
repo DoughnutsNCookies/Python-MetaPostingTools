@@ -1,43 +1,28 @@
 import argparse
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
+
+from scheduling import add_schedule_args, target_datetime
 
 load_dotenv()
 
 SESSION_FILE = Path(r"C:\Code\Python-MetaPostingTools\sessions\session_meta.json")
 PAGE_ID = os.getenv("META_PAGE_ID", "202884486244813")
 BLOG_BASE_URL = "https://schuahsolutions.com/blogs"
-MYT = ZoneInfo("Asia/Kuala_Lumpur")
+# Meta has shipped all of these labels for the upload button at different times.
+PHOTO_BUTTON_NAMES = ["Add photo/video", "Add Photo", "Add photo", "Photo/video", "Photo"]
 
 
-def next_tuesday_10am() -> datetime:
-    now = datetime.now(MYT)
-    days_ahead = (1 - now.weekday()) % 7
-    if days_ahead == 0 and now.hour >= 10:
-        days_ahead = 7
-    return now.replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
-
-
-def next_thursday_10am() -> datetime:
-    now = datetime.now(MYT)
-    days_ahead = (3 - now.weekday()) % 7
-    if days_ahead == 0 and now.hour >= 10:
-        days_ahead = 7
-    return now.replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=days_ahead)
-
-
-def schedule_post(image_path: Path, caption: str, slug: str, post_type: str):
+def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, scheduled_dt: datetime):
     if not Path(SESSION_FILE).exists():
         print("ERROR: No session found. Run setup_meta_browser.py first.")
         sys.exit(1)
 
-    scheduled_dt = next_thursday_10am() if post_type == "testimonial" else next_tuesday_10am()
     print(f"\n  Scheduling for: {scheduled_dt.strftime('%A, %d %B %Y at %I:%M %p MYT')}\n")
 
     with sync_playwright() as p:
@@ -55,14 +40,22 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str):
         # Click Create post
         print("  Opening post composer...")
         page.get_by_role("button", name="Create post").click()
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(5000)
 
-        # Upload image via file chooser
         print("  Uploading image...")
-        with page.expect_file_chooser() as fc_info:
-            page.get_by_role("button", name="Add Photo", exact=True).click()
-        file_chooser = fc_info.value
-        file_chooser.set_files(str(image_path))
+        for name in PHOTO_BUTTON_NAMES:
+            btn = page.get_by_role("button", name=name, exact=True)
+            if btn.count() == 0:
+                continue
+            with page.expect_file_chooser() as fc_info:
+                btn.first.click(timeout=5000)
+            fc_info.value.set_files(str(image_path))
+            break
+        else:
+            labels = [b.get_attribute("aria-label") or (b.text_content() or "")[:40]
+                      for b in page.get_by_role("button").all()[:40]]
+            print("  Buttons on page:", labels)
+            raise RuntimeError("Could not find the photo upload button")
         page.wait_for_timeout(3000)
 
         # Enter caption
@@ -81,14 +74,6 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str):
         print("  Setting schedule...")
         page.get_by_text("Set date and time").click()
         page.wait_for_timeout(1500)
-
-        # Set date/time fields
-        month = scheduled_dt.strftime("%B")
-        day = str(scheduled_dt.day)
-        year = str(scheduled_dt.year)
-        hour = scheduled_dt.strftime("%I").lstrip("0")
-        minute = scheduled_dt.strftime("%M")
-        am_pm = scheduled_dt.strftime("%p")
 
         # Date: dd/mm/yyyy format, two fields (Facebook + Instagram)
         date_str = scheduled_dt.strftime("%d/%m/%Y")
@@ -128,8 +113,7 @@ def main():
     parser.add_argument("image", help="Path to the image file (PNG/JPG)")
     parser.add_argument("slug", nargs="?", default="", help="Blog slug (e.g. my-blog-post) — required for blog type")
     parser.add_argument("--caption-file", required=True, help="Path to a .txt file containing the caption")
-    parser.add_argument("--type", dest="post_type", choices=["blog", "testimonial"], required=True,
-                        help="Post type: 'blog' (Tuesday) or 'testimonial' (Thursday)")
+    add_schedule_args(parser)
     args = parser.parse_args()
 
     image_path = Path(args.image)
@@ -147,7 +131,8 @@ def main():
         sys.exit(1)
 
     caption = caption_path.read_text(encoding="utf-8").strip()
-    schedule_post(image_path, caption, args.slug, args.post_type)
+    scheduled_dt = target_datetime(args.post_type, args.weekday, args.week)
+    schedule_post(image_path, caption, args.slug, args.post_type, scheduled_dt)
 
 
 if __name__ == "__main__":
