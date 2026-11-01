@@ -1,6 +1,10 @@
 import argparse
 import os
+import subprocess
 import sys
+import time
+import urllib.request
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -11,35 +15,64 @@ from scheduling import add_schedule_args, target_datetime
 
 load_dotenv()
 
-SESSION_FILE = Path(r"C:\Code\Python-MetaPostingTools\sessions\session_meta.json")
+CHROME_EXE = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+# A real Chrome profile (logged in once by hand) keeps Meta's rotating cookies fresh;
+# the old storage_state snapshot went stale within about a week.
+PROFILE_DIR = Path(r"C:\Code\Python-MetaPostingTools\sessions\chrome_profile_meta")
+CDP_PORT = 9223
+EXIT_LOGIN_EXPIRED = 3
+EXIT_NOT_CONFIRMED = 4
 PAGE_ID = os.getenv("META_PAGE_ID", "202884486244813")
 BLOG_BASE_URL = "https://schuahsolutions.com/blogs"
 # Meta has shipped all of these labels for the upload button at different times.
 PHOTO_BUTTON_NAMES = ["Add photo/video", "Add Photo", "Add photo", "Photo/video", "Photo"]
 
 
-def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, scheduled_dt: datetime):
-    if not Path(SESSION_FILE).exists():
-        print("ERROR: No session found. Run setup_meta_browser.py first.")
-        sys.exit(1)
+@contextmanager
+def meta_chrome():
+    """Launch real Chrome on the Meta profile, yield a Playwright browser, then close Chrome cleanly."""
+    proc = subprocess.Popen([
+        CHROME_EXE, f"--remote-debugging-port={CDP_PORT}", f"--user-data-dir={PROFILE_DIR}",
+        "--no-first-run", "--no-default-browser-check", "--window-size=1280,900", "about:blank",
+    ])
+    endpoint = f"http://127.0.0.1:{CDP_PORT}"
+    for _ in range(30):
+        try:
+            urllib.request.urlopen(f"{endpoint}/json/version", timeout=1)
+            break
+        except OSError:
+            time.sleep(1)
+    else:
+        proc.kill()
+        sys.exit("ERROR: Chrome did not start. Close any Chrome window that is using the Meta profile and retry.")
+    with sync_playwright() as p:
+        browser = p.chromium.connect_over_cdp(endpoint)
+        try:
+            yield browser
+        finally:
+            # Closing through CDP lets Chrome write its refreshed cookies back to the profile.
+            browser.new_browser_cdp_session().send("Browser.close")
+    proc.wait(timeout=15)
 
+
+def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, scheduled_dt: datetime):
     print(f"\n  Scheduling for: {scheduled_dt.strftime('%A, %d %B %Y at %I:%M %p MYT')}\n")
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(
-            storage_state=SESSION_FILE,
-            viewport={"width": 1280, "height": 900},
-        )
-        page = context.new_page()
+    with meta_chrome() as browser:
+        page = browser.contexts[0].new_page()
 
         print("  Opening Meta Business Suite...")
         page.goto(f"https://business.facebook.com/latest/home?business_id=&asset_id={PAGE_ID}")
         page.wait_for_load_state("networkidle")
 
-        # Click Create post
         print("  Opening post composer...")
-        page.get_by_role("button", name="Create post").click()
+        create = page.get_by_role("button", name="Create post").first
+        try:
+            create.wait_for(timeout=20000)
+        except Exception:
+            print("\n  ERROR: Meta login has expired. Run setup_meta_browser.py, log in, close that window, then retry.\n")
+            sys.exit(EXIT_LOGIN_EXPIRED)
+        create.click()
         page.wait_for_timeout(5000)
 
         print("  Uploading image...")
@@ -58,7 +91,6 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, sch
             raise RuntimeError("Could not find the photo upload button")
         page.wait_for_timeout(3000)
 
-        # Enter caption
         print("  Entering caption...")
         if post_type == "blog" and slug:
             blog_link = f"{BLOG_BASE_URL}/{slug}"
@@ -70,7 +102,6 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, sch
         composer.fill(full_caption)
         page.wait_for_timeout(1000)
 
-        # Enable scheduling
         print("  Setting schedule...")
         page.get_by_text("Set date and time").click()
         page.wait_for_timeout(1500)
@@ -100,12 +131,15 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, sch
 
         page.wait_for_timeout(1000)
 
-        # Schedule
-        page.get_by_role("button", name="Schedule").click()
+        schedule_btn = page.get_by_role("button", name="Schedule", exact=True)
+        schedule_btn.click()
         page.wait_for_timeout(6000)
+        # The composer closes once Meta accepts the post; if its button is still there, it didn't.
+        if schedule_btn.count() and schedule_btn.first.is_visible():
+            page.screenshot(path=str(Path(__file__).with_name("meta_debug.png")))
+            print("\n  ERROR: Meta did not confirm the schedule (composer still open). See meta_debug.png.\n")
+            sys.exit(EXIT_NOT_CONFIRMED)
         print("\n  Done. Post scheduled for both Facebook and Instagram.\n")
-
-        browser.close()
 
 
 def main():
@@ -131,7 +165,7 @@ def main():
         sys.exit(1)
 
     caption = caption_path.read_text(encoding="utf-8").strip()
-    scheduled_dt = target_datetime(args.post_type, args.weekday, args.week)
+    scheduled_dt = target_datetime(args.post_type, args.weekday, args.week, args.on_date)
     schedule_post(image_path, caption, args.slug, args.post_type, scheduled_dt)
 
 

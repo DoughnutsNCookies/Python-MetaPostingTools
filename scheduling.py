@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 MYT = ZoneInfo("Asia/Kuala_Lumpur")
@@ -9,8 +9,12 @@ DEFAULT_WEEKDAY = {"blog": "tue", "testimonial": "thu", "portfolio": "wed"}
 POST_TYPES = list(DEFAULT_WEEKDAY)
 
 
-def target_datetime(post_type: str, weekday: str | None = None, week: int = 1) -> datetime:
-    """10:00 AM MYT on the coming `weekday` (today counts if it's before 10 AM), plus `week - 1` weeks."""
+def target_datetime(post_type: str, weekday: str | None = None, week: int = 1,
+                    on_date: date | None = None) -> datetime:
+    """10:00 AM MYT on `on_date` if given, else on the coming `weekday` (today counts if it's
+    before 10 AM) plus `week - 1` weeks."""
+    if on_date:
+        return datetime(on_date.year, on_date.month, on_date.day, POST_HOUR, tzinfo=MYT)
     now = datetime.now(MYT)
     wd = WEEKDAYS[weekday or DEFAULT_WEEKDAY[post_type]]
     days_ahead = (wd - now.weekday()) % 7
@@ -27,3 +31,5 @@ def add_schedule_args(parser):
                         help="Override the post type's default day, e.g. --weekday thu")
     parser.add_argument("--week", type=int, default=1,
                         help="1 = the coming occurrence of the day, 2 = the week after, and so on")
+    parser.add_argument("--date", dest="on_date", type=date.fromisoformat,
+                        help="Exact day (YYYY-MM-DD), overrides --weekday/--week")

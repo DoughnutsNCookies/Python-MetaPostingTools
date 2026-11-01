@@ -15,7 +15,8 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
   - `--weekday mon..sun` — override the default day (e.g. `--weekday thu`)
   - `--week N` — 1 = the coming occurrence of that day (today counts if it's that day and before 10 AM), 2 = the week after, etc.
   - Always pass identical flags to both scripts so Meta and LinkedIn land on the same date.
-- **`setup_meta_browser.py`** — Attaches to a Chrome running with `--remote-debugging-port=9222` (which you log into manually) and saves the session to `sessions/session_meta.json`. Uses CDP attach because Google OAuth blocks Playwright's own launched Chromium.
+- **`plan_blog_batch.py`** — Prints (JSON) the Tuesdays the monthly blog run must fill and every existing post's title/slug/date. See Monthly Blog Batch below.
+- **`setup_meta_browser.py`** — Opens real Chrome on the Meta profile (`sessions/chrome_profile_meta`) so the user can log in. `meta_post.py` drives that same profile.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
 - **`setup_gbp.py`** — ⚠️ NOT YET ACTIVE. GBP auth setup, to be wired up once API access is granted.
@@ -133,7 +134,94 @@ Finish one portfolio on both platforms before starting the next. At the end, lis
 
 ---
 
-## Blog Publishing Workflow
+## Monthly Blog Batch (automated — 1st of each month, 7:00 AM)
+
+A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Claude writes the blogs itself, publishes them, and schedules one per Tuesday 10:00 AM MYT on Facebook/Instagram, LinkedIn and Google Business Profile.
+
+**Standing approval (Sean, 2026-11-01):** the whole run is hands-off. Write and publish the blogs, create and edit Canva designs copied from the templates below, and schedule every post without asking. Sean reviews after they're posted. Never edit `DAGal3LsJUo` or `DAGeyipWBWU` (the connector can't edit designs that big anyway), and never touch testimonial pages.
+
+### Step 0 — Plan
+
+```bash
+venv\Scripts\python plan_blog_batch.py
+```
+
+`tuesdays_to_fill` lists the dates (every Tuesday after the last blog's date, up to Meta's 30-day limit, so usually 4 or 5). If it's empty, report "nothing to schedule" and stop. Work through the dates **oldest first and finish each blog on every platform before starting the next** — on a 1st that's a Tuesday, the first post is only three hours away. Put all working files in `batch\` (git-ignored).
+
+### Step 1 — Write the blog
+
+- **Topic:** something a Malaysian small-business owner actually types into Google: "how much does…", "why isn't my…", "do I need…", "X vs Y", "how to…", with a location (Shah Alam, Klang Valley, KL, Selangor) or industry where natural. The goal is SEO. Don't repeat or near-repeat anything in `existing_posts`, and vary the batch (websites, SEO, Google Business Profile, Google/Meta ads, specific industries).
+- **Voice:** read the 3 newest posts in `C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\landing-page\src\blogs\` first and match them: short punchy lines, "you", RM prices, honest and slightly blunt, `##` sections, about 900–1,300 words. End with `## What Now?`, a pitch for the relevant Schuah Solutions service (website posts: `**RM375/month. No downpayment. No hidden fees. No BS.**`), then `Contact us below. **NOW.**`. No made-up client names, quotes or statistics.
+- **Frontmatter:** `title` (the search query, sentence case), `description` (under 160 characters), `slug` (kebab-case of the title), `date` = the Tuesday as `"D MONTH YYYY"` with the month in capitals, e.g. `"3 NOVEMBER 2026"`. The date must be exact: it's how the next run knows this Tuesday is taken.
+- Save as `batch\<slug>.md`.
+
+### Step 2 — Captions
+
+- **Facebook/LinkedIn caption** (`batch\<slug>.caption.txt`): same shape as past blog captions — a short hook, the pain point, an emoji list (✅ / ❌ / 🔍 / 📊), a closing "I broke down…" line, then `👉 https://schuahsolutions.com/blogs/<slug>`.
+- **Google Business Profile text:** the same caption with the "I broke down…" line and the 👉 link line replaced by `Read it now by clicking on the "Learn more" button`. Max 1,500 characters.
+
+### Step 3 — Illustration (Canva AI)
+
+`generate-image` with `aspectRatio: LANDSCAPE_4_3` (the template image boxes are 4:3) and this prompt, filling in a concrete subject for the topic:
+
+> Flat cartoon vector illustration of <subject>. Simple bold dark outlines, soft friendly colours, clip-art sticker style. Single centred subject isolated on a plain pure white background. No text, no letters, no words, no shadows on the background.
+
+Poll `get-generate-image-job`. If the image has text, garbled letters, or more than one main subject, generate once more. Keep the returned media ID.
+
+### Step 4 — Canva graphics
+
+| Graphic | Template design | Image element | Title element |
+|---|---|---|---|
+| Square social post (1080×1080) | `DAHZpUlSJJ0` | `LBM6xPTpnjkvDPYw` | `LBP7sygCNvf0LsxJ` |
+| Landscape website cover (1920×1080) | `DAHZpcf9Zhg` | `LB8K37vRwCWMj5wp` | `LBNNkKkvjDtc9dGM` |
+
+For each template:
+1. `copy-design` the template, then `read-design` the copy with `open_transaction: true` and `design_content` to get its locator IDs (`<page id>-<element id>`; the page ID changes on copy).
+2. `edit-design` (`keep_open`): `update_title` to `Blog: <title>`; `update_fill` the image element with the media ID; set the title. The title box has three text runs — dark `Do `, accent-coloured `kopitiams, cafes, and F&B restaurants`, dark ` need a website?` — so split the new title into prefix / highlighted keyword (2–5 words) / suffix and `find_and_replace_text` each run, which keeps its colour. Keep all three parts non-empty.
+3. Check the returned thumbnail: title fits below (square) or beside (cover) the image without overlapping, image isn't badly cropped. Fix with `resize_element` / `position_element` if needed, then `commit`.
+4. `export-design` page 1 as PNG (`export_quality: pro`), download with `curl` to `batch\<slug>-social.png` / `batch\<slug>-cover.png`.
+5. Move both designs into the Canva folder "Auto blog graphics" (`search-folders`, create it if missing).
+
+### Step 5 — Publish to the website
+
+```bash
+venv\Scripts\python blog_publish.py batch\<slug>.md batch\<slug>-cover.png --worktree C:\Code\WebApp-SchuahSolutions-WebDevLandingPage
+```
+
+Pushes straight to the landing page's `main`, which is live.
+
+### Step 6 — Schedule
+
+```bash
+venv\Scripts\python meta_post.py batch\<slug>-social.png <slug> --caption-file batch\<slug>.caption.txt --type blog --date <YYYY-MM-DD>
+venv\Scripts\python -u linkedin_post.py batch\<slug>-social.png <slug> --caption-file batch\<slug>.caption.txt --type blog --date <YYYY-MM-DD>
+```
+
+- `meta_post.py` exit 3 = Meta login expired: skip Meta for the rest of the batch, carry on with the other platforms, and tell Sean to run `setup_meta_browser.py`.
+- `meta_post.py` exit 4 = Meta didn't confirm: look at Meta Business Suite's Planner before retrying. Never re-run blindly — that risks a duplicate post.
+
+**Google Business Profile** — via Claude in Chrome (Sean's own Chrome, already signed in):
+1. `tabs_context_mcp`, new tab, open `https://www.google.com/search?q=schuah+solutions`.
+2. In the "Your business on Google" panel click **Posts**, then **Add post**. Keep **Update** selected.
+3. **Description**: the GBP text from Step 2.
+4. **Select images and videos**: upload `batch\<slug>-social.png`.
+5. Switch on **Schedule this post**. **Date**: calendar (weeks start Monday, month/year arrows). **Time**: 10:00 AM.
+6. **+ Button** → "Add a button" dropdown → **Learn more** → link `https://schuahsolutions.com/blogs/<slug>`.
+7. **Post**, then check it shows in the posts list as scheduled. Close the tab.
+
+If the Chrome extension isn't connected, start Chrome (`start chrome`), wait, and retry once. If it still fails, skip GBP and put the copy-paste text and link in the report.
+
+### Step 7 — Archive and clean up
+
+Copy each `batch\<slug>-social.png` to `C:\Users\schuah\Downloads\<slug>.png`, then empty `batch\`.
+
+### Step 8 — Report
+
+One table: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Then anything Sean has to do (expired login, a post to check). No other summary.
+
+---
+
+## Blog Publishing Workflow (manual — when the user sends a blog)
 
 The user sends only the blog markdown content. Claude handles everything else automatically.
 
@@ -252,7 +340,7 @@ Branch protection on `main` requires all changes go through PRs — do not push 
 
 **`blog_convert.py`** — TARGET_DIR is hardcoded to the main landing page path. Use `--target` to override for worktree branches. Default quality is 82; use `--force` to overwrite an existing slug.
 
-**`meta_post.py`** — Uses `sessions/session_meta.json` (saved by `setup_meta_browser.py`) to restore the Meta Business Suite browser session without re-authenticating. Schedule date comes from `scheduling.py` (see above). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial and portfolio posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields.
+**`meta_post.py`** — Launches real Chrome on `sessions/chrome_profile_meta` (debug port 9223), drives it over CDP, and closes it through CDP so refreshed cookies are saved back to the profile (the old `storage_state` snapshot went stale within a week). Exits 3 if the login has expired, 4 if Meta didn't confirm the schedule. Schedule date comes from `scheduling.py` (see above). Blog posts auto-append the blog link (`https://schuahsolutions.com/blogs/<slug>`); testimonial and portfolio posts use the caption as-is. Both Facebook and Instagram date/time inputs are filled — Meta Business Suite renders two sets of scheduling fields.
 
 Key selector details for Meta Business Suite (discovered through runtime debugging — may break if Meta changes their UI):
 
@@ -266,11 +354,6 @@ Key selector details for Meta Business Suite (discovered through runtime debuggi
 
 ## Session refresh
 
-If `meta_post.py` fails to load Meta Business Suite properly, the session has likely expired. To refresh:
-
-1. Close all Chrome windows.
-2. In PowerShell: `& "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\Code\Python-MetaPostingTools\sessions\chrome_profile_meta"`
-3. In that Chrome, log into https://business.facebook.com (Google OAuth works here).
-4. Run `python setup_meta_browser.py` from the venv — it attaches to that Chrome via CDP and saves the session.
+If `meta_post.py` exits 3 (Meta login expired): run `python setup_meta_browser.py` from the venv, log in in the Chrome window it opens (Google sign-in works there), then close that window. Claude can run the script itself; only the login needs the user.
 
 If `linkedin_post.py` fails with an auth error or redirects to the login page, the LinkedIn session has expired. Re-run `setup_linkedin_browser.py` from a terminal.
