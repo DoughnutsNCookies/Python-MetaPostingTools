@@ -173,13 +173,18 @@ If `tuesdays_to_fill` is empty and nothing was due, report "nothing to schedule"
 - **Facebook/LinkedIn caption** (`batch\<slug>.caption.txt`): same shape as past blog captions — a short hook, the pain point, an emoji list (✅ / ❌ / 🔍 / 📊), a closing "I broke down…" line, then `👉 https://schuahsolutions.com/blogs/<slug>`.
 - **Google Business Profile text:** the same caption with the "I broke down…" line and the 👉 link line replaced by `Read it now by clicking on the "Learn more" button`. Max 1,500 characters.
 
-### Step 3 — Illustration (SVG, drawn by Claude)
+### Step 3 — Illustration (SVG, drawn by a Fable sub-agent)
 
-No Canva and no AI image credits. Write the illustration yourself as an SVG file, `batch\<slug>.svg`:
+No Canva and no AI image credits. Sean chose Fable's drawings (2026-11-01): once the blogs are written, spawn **one** `Agent` with `model: "fable"` (`general-purpose`, foreground) to draw every illustration in the batch. Give it, for each blog, the title, a one-line subject idea, and the absolute output path `C:\Code\Python-MetaPostingTools\batch\<slug>.svg`, plus this spec word for word:
 
-- `viewBox="0 0 800 600"` (4:3), transparent background, the subject centred and filling most of the frame.
-- House style: flat cartoon, bold dark outlines (`stroke="#2b2b2b"`, `stroke-width` 8–10, round joins and caps), soft friendly fills, one clear subject for the topic (e.g. a phone with stars for reviews, a map pin over a shopfront for Google Maps). Simple objects, not people's faces in detail.
-- No text, letters, numbers or brand logos inside the drawing.
+- `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">`, transparent background (no background rect).
+- **Fill the frame:** the subject group spans at least 80% of the width or the height (roughly x 40–760, y 40–560). Small drawings get lost on Facebook.
+- Flat cartoon / clip-art sticker style. Outlines `stroke="#2b2b2b"`, `stroke-width` 8–10 (5–7 for small inner details), round joins and caps. Soft flat fills; no gradients, filters, shadows or opacity tricks.
+- One clear subject built from simple shapes, arranged as a single tidy group. Objects, not detailed faces.
+- No text, letters, numbers or brand logos. Plain SVG elements only (path, rect, circle, ellipse, line, polygon, g, defs/use).
+- Reply with just the file paths.
+
+If a rendered graphic in Step 4 looks off (unclear subject, too small, broken shapes), `SendMessage` the same agent to redraw that one file, saying what's wrong. If spawning Fable fails, draw the SVG yourself to the same spec.
 
 ### Step 4 — Graphics
 
