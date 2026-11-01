@@ -48,6 +48,12 @@ def days_to_fill(dated, now, weekday):
     return last.date().isoformat(), out
 
 
+def next_month_wednesdays(now):
+    first = (now.replace(day=1) + timedelta(days=32)).replace(day=1)
+    return sum(1 for d in range(31)
+               if (day := first + timedelta(days=d)).month == first.month and day.weekday() == WEDNESDAY)
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     now = datetime.now(MYT)
@@ -61,6 +67,7 @@ def main():
         "tuesdays_to_fill": tuesdays,
         "last_portfolio": last_portfolio,
         "wednesdays_to_fill": wednesdays,
+        "next_month_wednesdays": next_month_wednesdays(now),
         "existing_posts": sorted(blogs, key=lambda b: b["date"] or "", reverse=True),
     }, indent=2, ensure_ascii=False))
 
