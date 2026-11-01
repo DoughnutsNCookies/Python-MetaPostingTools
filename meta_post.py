@@ -22,6 +22,7 @@ PROFILE_DIR = Path(r"C:\Code\Python-MetaPostingTools\sessions\chrome_profile_met
 CDP_PORT = 9223
 EXIT_LOGIN_EXPIRED = 3
 EXIT_NOT_CONFIRMED = 4
+EXIT_DATE_REFUSED = 5
 PAGE_ID = os.getenv("META_PAGE_ID", "202884486244813")
 BLOG_BASE_URL = "https://schuahsolutions.com/blogs"
 # Meta has shipped all of these labels for the upload button at different times.
@@ -131,14 +132,23 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, sch
 
         page.wait_for_timeout(1000)
 
-        schedule_btn = page.get_by_role("button", name="Schedule", exact=True)
-        schedule_btn.click()
-        page.wait_for_timeout(6000)
-        # The composer closes once Meta accepts the post; if its button is still there, it didn't.
-        if schedule_btn.count() and schedule_btn.first.is_visible():
+        schedule_btn = page.get_by_role("button", name="Schedule", exact=True).first
+        if schedule_btn.get_attribute("aria-disabled") == "true":
             page.screenshot(path=str(Path(__file__).with_name("meta_debug.png")))
-            print("\n  ERROR: Meta did not confirm the schedule (composer still open). See meta_debug.png.\n")
+            print("\n  ERROR: Meta won't let this date be scheduled (Schedule button disabled). See meta_debug.png.\n")
+            sys.exit(EXIT_DATE_REFUSED)
+        schedule_btn.click()
+        try:
+            page.get_by_text("Your post is scheduled").first.wait_for(timeout=20000)
+        except Exception:
+            page.screenshot(path=str(Path(__file__).with_name("meta_debug.png")))
+            print("\n  ERROR: Meta did not confirm the schedule. See meta_debug.png and check the Planner before retrying.\n")
             sys.exit(EXIT_NOT_CONFIRMED)
+        # The confirmation comes with a "Boost" upsell; dismiss it without boosting.
+        later = page.get_by_role("button", name="Maybe later")
+        if later.count():
+            later.first.click()
+            page.wait_for_timeout(1500)
         print("\n  Done. Post scheduled for both Facebook and Instagram.\n")
 
 

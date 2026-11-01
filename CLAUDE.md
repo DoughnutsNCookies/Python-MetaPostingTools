@@ -16,7 +16,8 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
   - `--week N` — 1 = the coming occurrence of that day (today counts if it's that day and before 10 AM), 2 = the week after, etc.
   - Always pass identical flags to both scripts so Meta and LinkedIn land on the same date.
 - **`render_blog_graphics.py`** — Renders a blog's square social post and landscape website cover from an SVG drawing and a three-part title (uses `assets/Anton-Regular.ttf` and `assets/logo.webp`).
-- **`plan_blog_batch.py`** — Prints (JSON) the Tuesdays the monthly blog run must fill and every existing post's title/slug/date. See Monthly Blog Batch below.
+- **`plan_blog_batch.py`** — Prints (JSON) the Tuesdays the monthly blog run must fill (rest of this month) and every existing post's title/slug/date. See Monthly Blog Batch below.
+- **`meta_pending.py`** — Waiting list for Meta posts more than 29 days out (`add` / `due` / `done`), kept in `sessions\meta_pending\`.
 - **`setup_meta_browser.py`** — Opens real Chrome on the Meta profile (`sessions/chrome_profile_meta`) so the user can log in. `meta_post.py` drives that same profile.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
@@ -135,9 +136,9 @@ Finish one portfolio on both platforms before starting the next. At the end, lis
 
 ---
 
-## Monthly Blog Batch (automated — 1st of each month, 7:00 AM)
+## Monthly Blog Batch (automated — 1st and 15th of each month, 7:00 AM)
 
-A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Claude writes the blogs itself, publishes them, and schedules one per Tuesday 10:00 AM MYT on Facebook/Instagram, LinkedIn and Google Business Profile.
+A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Claude writes the blogs itself, publishes them, and schedules one per Tuesday 10:00 AM MYT on Facebook/Instagram, LinkedIn and Google Business Profile. The 1st does the month's blogs. The 15th normally only clears the Meta waiting list (Step 0b): Meta schedules at most **29 days** ahead, so a Tuesday on the 30th/31st can't reach Meta from the 1st.
 
 **Standing approval (Sean, 2026-11-01):** the whole run is hands-off. Write and publish the blogs, draw the graphics, and schedule every post without asking. Sean reviews after they're posted. Don't touch the Canva designs (testimonials still live there).
 
@@ -147,7 +148,17 @@ A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Claude writes t
 venv\Scripts\python plan_blog_batch.py
 ```
 
-`tuesdays_to_fill` lists the dates (every Tuesday after the last blog's date, up to Meta's 30-day limit, so usually 4 or 5). If it's empty, report "nothing to schedule" and stop. Work through the dates **oldest first and finish each blog on every platform before starting the next** — on a 1st that's a Tuesday, the first post is only three hours away. Put all working files in `batch\` (git-ignored).
+`tuesdays_to_fill` lists the dates: every Tuesday after the last blog's date through the end of this month (4 or 5 on the 1st, usually none on the 15th). Work through them **oldest first and finish each blog on every platform before starting the next** — on a 1st that's a Tuesday, the first post is only three hours away. Put all working files in `batch\` (git-ignored); the Claude in Chrome upload tool only accepts files inside this folder.
+
+### Step 0b — Meta waiting list
+
+```bash
+venv\Scripts\python meta_pending.py due
+```
+
+For each entry, run `meta_post.py <image> <slug> --caption-file <caption> --type blog --date <date>` with the paths it lists. On exit 0, `venv\Scripts\python meta_pending.py done <slug>`. Entries marked `"missed": true` are past — report them and `done` them. Do this before Step 1.
+
+If `tuesdays_to_fill` is empty and nothing was due, report "nothing to schedule" and stop.
 
 ### Step 1 — Write the blog
 
@@ -195,17 +206,25 @@ venv\Scripts\python meta_post.py batch\<slug>-social.png <slug> --caption-file b
 venv\Scripts\python -u linkedin_post.py batch\<slug>-social.png <slug> --caption-file batch\<slug>.caption.txt --type blog --date <YYYY-MM-DD>
 ```
 
-- `meta_post.py` exit 3 = Meta login expired: skip Meta for the rest of the batch, carry on with the other platforms, and tell Sean to run `setup_meta_browser.py`.
-- `meta_post.py` exit 4 = Meta didn't confirm: look at Meta Business Suite's Planner before retrying. Never re-run blindly — that risks a duplicate post.
+`meta_post.py` exit codes:
+- **3** — Meta login expired: skip Meta for the rest of the batch, carry on with the other platforms, and tell Sean to run `setup_meta_browser.py`.
+- **4** — no "Your post is scheduled" confirmation: look at Meta Business Suite's Planner before retrying. Never re-run blindly — that risks a duplicate post.
+- **5** — date beyond Meta's 29-day window (nothing was posted): `venv\Scripts\python meta_pending.py add <slug> <date> batch\<slug>-social.png batch\<slug>.caption.txt` and carry on. The 15th's run schedules it.
 
-**Google Business Profile** — via Claude in Chrome (Sean's own Chrome, already signed in):
-1. `tabs_context_mcp`, new tab, open `https://www.google.com/search?q=schuah+solutions`.
-2. In the "Your business on Google" panel click **Posts**, then **Add post**. Keep **Update** selected.
-3. **Description**: the GBP text from Step 2.
-4. **Select images and videos**: upload `batch\<slug>-social.png`.
-5. Switch on **Schedule this post**. **Date**: calendar (weeks start Monday, month/year arrows). **Time**: 10:00 AM.
-6. **+ Button** → "Add a button" dropdown → **Learn more** → link `https://schuahsolutions.com/blogs/<slug>`.
-7. **Post**, then check it shows in the posts list as scheduled. Close the tab.
+After scheduling, Meta shows a "Boost" upsell; the script clicks **Maybe later**. Never boost.
+
+`linkedin_post.py` sometimes times out loading the page (`Page.goto: Timeout`) before doing anything; retry once.
+
+**Google Business Profile** — via Claude in Chrome (Sean's own Chrome, already signed in). Use the direct page: on Google Search the form is inside a frame the tools can't read.
+1. `tabs_context_mcp`, then open `https://www.google.com/local/business/5690101364740487744/promote/updates` and click **Add post**. Keep **Update** selected.
+2. Use `find` for the refs: Description textbox, the file input, the "Schedule post" switch, "Add link fields" (+ Button).
+3. **Description**: `form_input` the GBP text from Step 2.
+4. **Image**: `file_upload` `batch\<slug>-social.png` (full path) onto the file input.
+5. Switch on **Schedule post**. **Date**: click it, type `MM/DD/YYYY` (US order — e.g. `11/10/2026` is 10 November), press Tab. **Time**: open it, `find` the "10:00 AM" option, scroll to it, click.
+6. **+ Button** → the "None" dropdown → **Learn more** → click "Link for your button" and type `https://schuahsolutions.com/blogs/<slug>`.
+7. Screenshot and check date, time, image and link, then **Post**.
+8. A **Copy post** screen follows, listing Sean's *clients'* profiles. **Always click Skip.** Never tick any of them.
+9. The posts list should show the post as "Scheduled <date>" (briefly "Pending" while Google reviews it). Close the tab.
 
 If the Chrome extension isn't connected, start Chrome (`start chrome`), wait, and retry once. If it still fails, skip GBP and put the copy-paste text and link in the report.
 
