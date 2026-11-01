@@ -464,7 +464,7 @@ def main():
         sys.exit(1)
 
     caption = caption_path.read_text(encoding="utf-8").strip()
-    target = target_datetime(args.post_type, args.weekday, args.week)
+    target = target_datetime(args.post_type, args.weekday, args.week, args.on_date)
     post_to_linkedin(image_path, caption, target, schedule=not args.post_now)
 
 

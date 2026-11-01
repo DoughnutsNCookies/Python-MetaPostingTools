@@ -7,7 +7,7 @@ A collection of Python tools for managing Schuah Solutions content.
 - **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
 - **`blog_convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
-- **`setup_meta_browser.py`** — One-time login setup for Meta Business Suite (saves browser session)
+- **`setup_meta_browser.py`** — Opens Chrome on the Meta profile so you can log in
 
 ## One-Time Setup
 

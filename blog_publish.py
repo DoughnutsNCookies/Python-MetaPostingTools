@@ -97,6 +97,10 @@ def main():
     print(f"\n  Blog: {title}")
     print(f"  Slug: {slug}\n")
 
+    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], worktree)
+    if branch == "main":
+        git(["pull", "--ff-only", "origin", "main"], worktree)
+
     # 2. Copy markdown file
     dest_md = landing / "src" / "blogs" / f"{slug}.md"
     if dest_md.exists():
@@ -114,12 +118,16 @@ def main():
     convert(image_path, slug, args.quality, force=True, target_dir=webp_dir)
 
     # 5. Commit and push
-    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], worktree)
     print(f"  Branch: {branch}")
     git(["add", str(dest_md), str(paths_ts), str(webp_dir / f"{slug}.webp")], worktree)
     git(["commit", "-m", f"feat: Add blog post '{slug}'"], worktree)
     git(["push", "origin", f"HEAD:{branch}"], worktree)
     print(f"  Pushed to {branch}")
+
+    # The landing page deploys from main, so a push there is already live.
+    if branch == "main":
+        print("\n  Published (pushed straight to main, no PR needed).\n")
+        return
 
     # 6. Create PR
     print("\n  Creating PR...")
