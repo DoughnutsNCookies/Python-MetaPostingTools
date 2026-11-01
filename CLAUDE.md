@@ -156,6 +156,16 @@ venv\Scripts\python portfolio_log.py add <YYYY-MM-DD> <domain>
 
 Same exit codes as the blogs. On Meta exit 5 (more than 29 days out), `meta_pending.py add <domain> <date> batch\<domain>-square.png batch\<domain>.caption.txt portfolio`. Log the date once LinkedIn is scheduled, then tick the URL in Notion.
 
+### P5 — Low-list warning (after the month's portfolios are done)
+
+Count the unticked URLs left under Social Media. If that's fewer than the planner's `next_month_wednesdays`, next month will pause (Step 0c), so warn Sean a month ahead: add an unticked to-do as the first item under **\[Urgent\]** on the same Notion page, matching the indentation of the items already there:
+
+```
+Claude: Top up the portfolio list — <N> sites left under Projects → Social Media, but <Month> has <M> Wednesdays. Add at least <M − N> more before 1 <Month>, or <Month>'s posts pause.
+```
+
+Fetch the page first. If an unticked "Claude: Top up the portfolio list" item is already there, update its text instead of adding a second one. Never tick or remove Sean's other to-dos.
+
 ---
 
 ## Monthly Blog Batch (automated — 1st and 15th of each month, 7:00 AM)
@@ -191,7 +201,7 @@ For each entry, run `meta_post.py <image> [<slug>] --caption-file <caption> --ty
 
 If `tuesdays_to_fill` and `wednesdays_to_fill` are both empty and nothing was due, report "nothing to schedule" and stop.
 
-**Part A (blogs) is Steps 1–6 below. Part B (portfolios) is P1–P4 in Portfolio Batch, once per open Wednesday, oldest first, taking the unticked Notion URLs top first. Do the blog for each week, then that week's portfolio.**
+**Part A (blogs) is Steps 1–6 below. Part B (portfolios) is P1–P4 in Portfolio Batch, once per open Wednesday, oldest first, taking the unticked Notion URLs top first, then P5. Do the blog for each week, then that week's portfolio.**
 
 ### Step 1 — Write the blog
 
@@ -272,7 +282,7 @@ Copy each `batch\<slug>-social.png` to `C:\Users\schuah\Downloads\<slug>.png`, t
 
 ### Step 8 — Report
 
-Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left, and anything Sean has to do (expired login, a post to check, the list running low). No other summary.
+Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left (and whether the P5 top-up note was added), and anything Sean has to do (expired login, a post to check). No other summary.
 
 ---
 
