@@ -15,6 +15,7 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
   - `--weekday mon..sun` — override the default day (e.g. `--weekday thu`)
   - `--week N` — 1 = the coming occurrence of that day (today counts if it's that day and before 10 AM), 2 = the week after, etc.
   - Always pass identical flags to both scripts so Meta and LinkedIn land on the same date.
+- **`render_blog_graphics.py`** — Renders a blog's square social post and landscape website cover from an SVG drawing and a three-part title (uses `assets/Anton-Regular.ttf` and `assets/logo.webp`).
 - **`plan_blog_batch.py`** — Prints (JSON) the Tuesdays the monthly blog run must fill and every existing post's title/slug/date. See Monthly Blog Batch below.
 - **`setup_meta_browser.py`** — Opens real Chrome on the Meta profile (`sessions/chrome_profile_meta`) so the user can log in. `meta_post.py` drives that same profile.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
@@ -138,7 +139,7 @@ Finish one portfolio on both platforms before starting the next. At the end, lis
 
 A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Claude writes the blogs itself, publishes them, and schedules one per Tuesday 10:00 AM MYT on Facebook/Instagram, LinkedIn and Google Business Profile.
 
-**Standing approval (Sean, 2026-11-01):** the whole run is hands-off. Write and publish the blogs, create and edit Canva designs copied from the templates below, and schedule every post without asking. Sean reviews after they're posted. Never edit `DAGal3LsJUo` or `DAGeyipWBWU` (the connector can't edit designs that big anyway), and never touch testimonial pages.
+**Standing approval (Sean, 2026-11-01):** the whole run is hands-off. Write and publish the blogs, draw the graphics, and schedule every post without asking. Sean reviews after they're posted. Don't touch the Canva designs (testimonials still live there).
 
 ### Step 0 — Plan
 
@@ -160,27 +161,23 @@ venv\Scripts\python plan_blog_batch.py
 - **Facebook/LinkedIn caption** (`batch\<slug>.caption.txt`): same shape as past blog captions — a short hook, the pain point, an emoji list (✅ / ❌ / 🔍 / 📊), a closing "I broke down…" line, then `👉 https://schuahsolutions.com/blogs/<slug>`.
 - **Google Business Profile text:** the same caption with the "I broke down…" line and the 👉 link line replaced by `Read it now by clicking on the "Learn more" button`. Max 1,500 characters.
 
-### Step 3 — Illustration (Canva AI)
+### Step 3 — Illustration (SVG, drawn by Claude)
 
-`generate-image` with `aspectRatio: LANDSCAPE_4_3` (the template image boxes are 4:3) and this prompt, filling in a concrete subject for the topic:
+No Canva and no AI image credits. Write the illustration yourself as an SVG file, `batch\<slug>.svg`:
 
-> Flat cartoon vector illustration of <subject>. Simple bold dark outlines, soft friendly colours, clip-art sticker style. Single centred subject isolated on a plain pure white background. No text, no letters, no words, no shadows on the background.
+- `viewBox="0 0 800 600"` (4:3), transparent background, the subject centred and filling most of the frame.
+- House style: flat cartoon, bold dark outlines (`stroke="#2b2b2b"`, `stroke-width` 8–10, round joins and caps), soft friendly fills, one clear subject for the topic (e.g. a phone with stars for reviews, a map pin over a shopfront for Google Maps). Simple objects, not people's faces in detail.
+- No text, letters, numbers or brand logos inside the drawing.
 
-Poll `get-generate-image-job`. If the image has text, garbled letters, or more than one main subject, generate once more. Keep the returned media ID.
+### Step 4 — Graphics
 
-### Step 4 — Canva graphics
+Split the title into prefix / highlighted keyword (2–5 words) / suffix, all non-empty, and pick an accent colour that suits the drawing (default `#e29d5f`; vary it across the batch). Then:
 
-| Graphic | Template design | Image element | Title element |
-|---|---|---|---|
-| Square social post (1080×1080) | `DAHZpUlSJJ0` | `LBM6xPTpnjkvDPYw` | `LBP7sygCNvf0LsxJ` |
-| Landscape website cover (1920×1080) | `DAHZpcf9Zhg` | `LB8K37vRwCWMj5wp` | `LBNNkKkvjDtc9dGM` |
+```bash
+venv\Scripts\python render_blog_graphics.py batch\<slug>.svg --prefix "How to get more " --highlight "Google reviews" --suffix " for your business" --accent "#e8a417" --social batch\<slug>-social.png --cover batch\<slug>-cover.png
+```
 
-For each template:
-1. `copy-design` the template, then `read-design` the copy with `open_transaction: true` and `design_content` to get its locator IDs (`<page id>-<element id>`; the page ID changes on copy).
-2. `edit-design` (`keep_open`): `update_title` to `Blog: <title>`; `update_fill` the image element with the media ID; set the title. The title box has three text runs — dark `Do `, accent-coloured `kopitiams, cafes, and F&B restaurants`, dark ` need a website?` — so split the new title into prefix / highlighted keyword (2–5 words) / suffix and `find_and_replace_text` each run, which keeps its colour. Keep all three parts non-empty.
-3. Check the returned thumbnail: title fits below (square) or beside (cover) the image without overlapping, image isn't badly cropped. Fix with `resize_element` / `position_element` if needed, then `commit`.
-4. `export-design` page 1 as PNG (`export_quality: pro`), download with `curl` to `batch\<slug>-social.png` / `batch\<slug>-cover.png`.
-5. Move both designs into the Canva folder "Auto blog graphics" (`search-folders`, create it if missing).
+It renders the 1080×1080 social post and the 1920×1080 website cover with the logo, the drawing and the title in Anton. If it says the title doesn't fit, shorten the graphic's wording (the blog title can stay longer). Look at both PNGs before moving on; redraw the SVG if anything looks off.
 
 ### Step 5 — Publish to the website
 

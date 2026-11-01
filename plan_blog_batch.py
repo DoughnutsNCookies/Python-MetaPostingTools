@@ -7,6 +7,7 @@ Meta's 30-day scheduling limit.
 
 import json
 import re
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -47,6 +48,7 @@ def tuesdays_to_fill(blogs, now):
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
     now = datetime.now(MYT)
     blogs = read_blogs()
     last, tuesdays = tuesdays_to_fill(blogs, now)
