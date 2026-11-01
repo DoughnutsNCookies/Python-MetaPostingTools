@@ -117,7 +117,7 @@ def post_to_linkedin(image_path: Path, caption: str, target: datetime, schedule:
 
         # Navigate directly to company admin page — opens composer as Schuah Solutions
         print(f"\n  Opening {COMPANY_NAME} post composer...")
-        page.goto(COMPANY_POST_URL)
+        page.goto(COMPANY_POST_URL, wait_until="domcontentloaded", timeout=60000)
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_timeout(4000)
 

@@ -74,17 +74,20 @@ def schedule_post(image_path: Path, caption: str, slug: str, post_type: str, sch
             print("\n  ERROR: Meta login has expired. Run setup_meta_browser.py, log in, close that window, then retry.\n")
             sys.exit(EXIT_LOGIN_EXPIRED)
         create.click()
-        page.wait_for_timeout(5000)
 
         print("  Uploading image...")
-        for name in PHOTO_BUTTON_NAMES:
-            btn = page.get_by_role("button", name=name, exact=True)
-            if btn.count() == 0:
-                continue
+        # The composer sometimes takes a while to open; keep looking for the upload button.
+        upload = None
+        for _ in range(30):
+            upload = next((b for name in PHOTO_BUTTON_NAMES
+                           if (b := page.get_by_role("button", name=name, exact=True)).count()), None)
+            if upload:
+                break
+            page.wait_for_timeout(1000)
+        if upload:
             with page.expect_file_chooser() as fc_info:
-                btn.first.click(timeout=5000)
+                upload.first.click(timeout=5000)
             fc_info.value.set_files(str(image_path))
-            break
         else:
             labels = [b.get_attribute("aria-label") or (b.text_content() or "")[:40]
                       for b in page.get_by_role("button").all()[:40]]
