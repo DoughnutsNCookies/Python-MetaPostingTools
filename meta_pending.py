@@ -1,6 +1,6 @@
 """Meta posts that were too far ahead to schedule yet (Meta only allows 29 days).
 
-  python meta_pending.py add <slug> <YYYY-MM-DD> <image.png> <caption.txt>
+  python meta_pending.py add <slug> <YYYY-MM-DD> <image.png> <caption.txt> [blog|portfolio]
   python meta_pending.py due      # JSON list of pending posts that can be scheduled now
   python meta_pending.py done <slug>
 
@@ -32,14 +32,14 @@ def save(items):
     PENDING_FILE.write_text(json.dumps(items, indent=2), encoding="utf-8")
 
 
-def add(slug, day, image, caption):
+def add(slug, day, image, caption, post_type="blog"):
     PENDING_DIR.mkdir(parents=True, exist_ok=True)
     img = PENDING_DIR / f"{slug}-social.png"
     cap = PENDING_DIR / f"{slug}.caption.txt"
     shutil.copyfile(image, img)
     shutil.copyfile(caption, cap)
     items = [i for i in load() if i["slug"] != slug]
-    items.append({"slug": slug, "date": day, "image": str(img), "caption": str(cap)})
+    items.append({"slug": slug, "date": day, "type": post_type, "image": str(img), "caption": str(cap)})
     save(items)
     print(f"Added {slug} ({day}) to the Meta waiting list.")
 
@@ -68,7 +68,7 @@ def done(slug):
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     cmd, args = (sys.argv[1], sys.argv[2:]) if len(sys.argv) > 1 else ("", [])
-    if cmd == "add" and len(args) == 4:
+    if cmd == "add" and len(args) in (4, 5):
         add(*args)
     elif cmd == "due" and not args:
         due()
