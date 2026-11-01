@@ -1,8 +1,9 @@
 """Work out which Tuesdays the monthly blog run must fill, and list the existing posts.
 
 Each published blog's frontmatter date is its posting Tuesday, so the latest date on the
-site is the last Tuesday already covered. The run fills every Tuesday after that, up to
-Meta's 30-day scheduling limit.
+site is the last Tuesday already covered. The run fills every Tuesday after that through
+the end of the current month. (Meta only schedules 29 days ahead, so a Tuesday on the
+30th/31st can't go to Meta on the 1st; those go on the meta_pending.py waiting list.)
 """
 
 import json
@@ -13,7 +14,6 @@ from datetime import datetime, timedelta
 from blog_publish import publish_checkout
 from scheduling import MYT, POST_HOUR
 
-SCHEDULE_LIMIT = timedelta(days=30)
 MIN_LEAD = timedelta(hours=1)
 TUESDAY = 1
 
@@ -41,7 +41,7 @@ def tuesdays_to_fill(blogs, now):
         day += timedelta(days=1)
     day += timedelta(days=(TUESDAY - day.weekday()) % 7)
     out = []
-    while day <= now + SCHEDULE_LIMIT:
+    while day.month == now.month and day.year == now.year:
         out.append(day.date().isoformat())
         day += timedelta(days=7)
     return last.date().isoformat(), out
