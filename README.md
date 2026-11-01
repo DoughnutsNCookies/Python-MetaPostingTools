@@ -4,7 +4,7 @@ A collection of Python tools for managing Schuah Solutions content.
 
 ## Tools
 
-- **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
+- **`blog_publish.py`** — Publishes a blog to the live site (pushes to the landing page's `main` from its own checkout)
 - **`blog_convert.py`** — Converts PNG blog cover images to WEBP and saves them to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules image posts to Facebook and Instagram for the coming Tuesday at 10am MYT via Meta Business Suite
 - **`setup_meta_browser.py`** — Opens Chrome on the Meta profile so you can log in
@@ -35,22 +35,21 @@ Log in manually including 2FA, then press Enter. Session is saved and reused aut
 ## blog_publish.py — Full Blog Publishing Workflow
 
 ```
-python blog_publish.py "C:\path\to\blog.md" "C:\path\to\image.png" --worktree "C:\path\to\worktree"
+python blog_publish.py "C:\path\to\blog.md" "C:\path\to\image.png"
 ```
 
-Copies the markdown, updates `paths.ts`, converts the PNG to WEBP, commits everything, and opens a PR.
+Copies the markdown, updates `paths.ts`, converts the PNG to WEBP, commits, and pushes to the landing page's `main` (live). It works in its own detached checkout (`sessions\landing-publish`), so whatever branch the landing page folder is on doesn't matter.
 
 **Options:**
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `blog` | Yes | Path to the `.md` file |
 | `image` | Yes | Path to the cover image PNG |
-| `--worktree` | No | Path to the git worktree. Defaults to the main project directory |
 | `--quality` | No | WEBP quality 1–100. Default: 82 |
 
 **Example:**
 ```
-python blog_publish.py "C:\Users\schuah\Downloads\my-post.md" "C:\Users\schuah\Downloads\cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+python blog_publish.py "C:\Users\schuah\Downloads\my-post.md" "C:\Users\schuah\Downloads\cover.png"
 ```
 
 ---

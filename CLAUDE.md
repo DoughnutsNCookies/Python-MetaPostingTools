@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CLI tools for the full Schuah Solutions blog publishing and social media workflow. The landing page repo lives at `C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\`.
 
-- **`blog_publish.py`** — Full blog publishing workflow: copies markdown, updates paths.ts, converts PNG to WEBP, commits, pushes, and creates a PR
+- **`blog_publish.py`** — Publishes a blog to the live site: copies markdown, updates paths.ts, converts the cover to WEBP, commits and pushes to the landing page's `main`. Always works in its own detached checkout of `main` (`sessions\landing-publish`, created automatically), never in the landing page folder, which may be on another branch
 - **`blog_convert.py`** — Converts a PNG blog cover image to WEBP and saves it to the landing page's `public/blogs/` directory
 - **`meta_post.py`** — Schedules an image post to Facebook and Instagram via Meta Business Suite (Playwright browser automation).
 - **`linkedin_post.py`** — Schedules an image post to the Schuah Solutions LinkedIn company page. Add `--post-now` to publish immediately.
@@ -154,6 +154,7 @@ venv\Scripts\python plan_blog_batch.py
 - **Topic:** something a Malaysian small-business owner actually types into Google: "how much does…", "why isn't my…", "do I need…", "X vs Y", "how to…", with a location (Shah Alam, Klang Valley, KL, Selangor) or industry where natural. The goal is SEO. Don't repeat or near-repeat anything in `existing_posts`, and vary the batch (websites, SEO, Google Business Profile, Google/Meta ads, specific industries).
 - **Voice:** read the 3 newest posts in `C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\landing-page\src\blogs\` first and match them: short punchy lines, "you", RM prices, honest and slightly blunt, `##` sections, about 900–1,300 words. End with `## What Now?`, a pitch for the relevant Schuah Solutions service (website posts: `**RM375/month. No downpayment. No hidden fees. No BS.**`), then `Contact us below. **NOW.**`. No made-up client names, quotes or statistics.
 - **Frontmatter:** `title` (the search query, sentence case), `description` (under 160 characters), `slug` (kebab-case of the title), `date` = the Tuesday as `"D MONTH YYYY"` with the month in capitals, e.g. `"3 NOVEMBER 2026"`. The date must be exact: it's how the next run knows this Tuesday is taken.
+- **Internal links:** link 1–3 related existing posts as `/blogs/<slug>`, copying the `slug` from `existing_posts` exactly (slugs don't always match titles).
 - Save as `batch\<slug>.md`.
 
 ### Step 2 — Captions
@@ -182,7 +183,7 @@ It renders the 1080×1080 social post and the 1920×1080 website cover with the 
 ### Step 5 — Publish to the website
 
 ```bash
-venv\Scripts\python blog_publish.py batch\<slug>.md batch\<slug>-cover.png --worktree C:\Code\WebApp-SchuahSolutions-WebDevLandingPage
+venv\Scripts\python blog_publish.py batch\<slug>.md batch\<slug>-cover.png
 ```
 
 Pushes straight to the landing page's `main`, which is live.
@@ -251,7 +252,7 @@ Write the markdown content the user provided to `C:\Code\Python-MetaPostingTools
 ```bash
 cd "C:\Code\Python-MetaPostingTools"
 venv\Scripts\activate
-python blog_publish.py "C:\Code\Python-MetaPostingTools\blog.md" "C:\Code\Python-MetaPostingTools\blog-cover.png" --worktree "C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\.claude\worktrees\<worktree-name>"
+python blog_publish.py "C:\Code\Python-MetaPostingTools\blog.md" "C:\Code\Python-MetaPostingTools\blog-cover.png"
 ```
 
 ### Step 4 — Run meta_post.py (Meta: Facebook + Instagram)
