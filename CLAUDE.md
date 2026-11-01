@@ -18,6 +18,9 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
 - **`render_blog_graphics.py`** — Renders a blog's square social post and landscape website cover from an SVG drawing and a three-part title (uses `assets/Anton-Regular.ttf` and `assets/logo.webp`).
 - **`plan_blog_batch.py`** — Prints (JSON) the Tuesdays the monthly blog run must fill (rest of this month) and every existing post's title/slug/date. See Monthly Blog Batch below.
 - **`meta_pending.py`** — Waiting list for Meta posts more than 29 days out (`add` / `due` / `done`), kept in `sessions\meta_pending\`.
+- **`portfolio_screenshots.py`** — Captures a client site's homepage: square 1026×1026 and landscape 2052×1026.
+- **`portfolio_publish.py`** — Adds a client site to the schuahsolutions.com portfolio (entry in `PortfolioSection.tsx` + WebP), skipping sites already there.
+- **`portfolio_log.py`** — Which portfolio is scheduled on which Wednesday (`sessions\portfolio_schedule.json`); the planner and the testimonial feed check read it.
 - **`setup_meta_browser.py`** — Opens real Chrome on the Meta profile (`sessions/chrome_profile_meta`) so the user can log in. `meta_post.py` drives that same profile.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
@@ -62,6 +65,8 @@ A blog post requires three things in the landing page repo: a markdown file at `
 
 The user sends the social media caption. Claude handles everything else automatically.
 
+**Feed order check first.** Sean's feed must go blog (Tue) → portfolio (Wed) → testimonial (Thu) every week. Before scheduling a testimonial for a Thursday, run `venv\Scripts\python plan_blog_batch.py` and `venv\Scripts\python portfolio_log.py list` and confirm that week's Tuesday has a blog (an `existing_posts` date) and its Wednesday has a portfolio. If either is missing — for example the month is paused (see Monthly Batch, Step 0c) — don't schedule it; tell Sean which slot is empty.
+
 ### Step 1 — Export image from Canva (Claude does this via MCP)
 
 | Design | Canva ID | Purpose |
@@ -97,13 +102,33 @@ That's it — no publish, no PR, no GBP reminder, no worktree sync.
 
 ---
 
-## Portfolio Posting Workflow
+## Portfolio Batch (part of the monthly run — Wednesdays 10:00 AM)
 
-The user sends a batch of finished client websites (usually 4), each with the business name, domain, some info about the business, and an image. Each one is scheduled a week apart: the first on the coming Wednesday, the next on the Wednesday after, and so on. If the user asks for Thursdays (or any other day), add `--weekday thu` to every command.
+One finished client website per Wednesday, taken from Sean's Notion list, posted to Facebook/Instagram and LinkedIn. Runs as Part B of the Monthly Batch below; same standing approval.
 
-No Canva export — use the images the user provides. No blog, no PR, no GBP reminder. `meta_post.py` goes through Meta Business Suite, so each post lands on both Facebook and Instagram — that's intended.
+**Source:** Notion page "To-do List" (`1b28cb0d30cb8042b09df9ce365c5905`) → section **Projects** → the **Social Media** to-do and the URLs nested under it. Unticked URLs are waiting, top first. After a site is scheduled on both platforms, tick its checkbox (`notion-update-page`, replacing `- [ ] [url](url)` with `- [x] [url](url)`), so the next run doesn't post it again.
 
-### Caption template
+**Google Business Profile:** not part of this. Every site on the Social Media list as of 2026-11-01 is already in the GBP photos, and Sean uploads new ones himself.
+
+### P1 — Screenshots
+
+```bash
+venv\Scripts\python portfolio_screenshots.py <url> --square batch\<domain>-square.png --landscape batch\<domain>-landscape.png
+```
+
+Plain captures of the top of the homepage: square 1026×1026 (social posts), landscape 2052×1026 (website). Cookie banners and WhatsApp buttons are fine. Look at both; if the page hadn't finished loading (blank hero, spinner), run it again.
+
+### P2 — Website portfolio
+
+Read the site and decide its category: **landing** (one page built around a single offer and a WhatsApp/form CTA), **ecommerce** (products with a cart/checkout), or **standard** (a multi-page business site). Then:
+
+```bash
+venv\Scripts\python portfolio_publish.py <url> "<Business name>" <category> batch\<domain>-landscape.png
+```
+
+It does nothing if the site is already in `PortfolioSection.tsx`. Otherwise it adds the entry at the top of its category, saves the screenshot as `public/section/portfolio/<domain>.webp`, and pushes to the landing page's `main` (live).
+
+### P3 — Caption
 
 ```
 🎉 [Business] has now officially launched its website with us!
@@ -119,26 +144,23 @@ Visit at [website domain]
 ⭐ No down payments and hidden costs. Guaranteed.
 ```
 
-Use the user's description if they give one; otherwise write 1-2 plain lines from the facts they gave (what the business does, where). No marketing buzzwords.
+Write the 1–2 description lines yourself from the client's website: what the business does, for whom, where, and one concrete fact (services, areas, prices). Plain language, no buzzwords. `Visit at` takes the full URL. Save as `batch\<domain>.caption.txt`.
 
-### For each portfolio (N = 1, 2, 3, 4 in the order given)
-
-Write its caption to `caption.txt`, then:
+### P4 — Schedule
 
 ```bash
-cd "C:\Code\Python-MetaPostingTools"
-venv\Scripts\activate
-python meta_post.py "<image path>" --caption-file caption.txt --type portfolio --week N
-python -u linkedin_post.py "<image path>" --caption-file caption.txt --type portfolio --week N
+venv\Scripts\python meta_post.py batch\<domain>-square.png --caption-file batch\<domain>.caption.txt --type portfolio --date <YYYY-MM-DD>
+venv\Scripts\python -u linkedin_post.py batch\<domain>-square.png --caption-file batch\<domain>.caption.txt --type portfolio --date <YYYY-MM-DD>
+venv\Scripts\python portfolio_log.py add <YYYY-MM-DD> <domain>
 ```
 
-Finish one portfolio on both platforms before starting the next. At the end, list each business with its scheduled date.
+Same exit codes as the blogs. On Meta exit 5 (more than 29 days out), `meta_pending.py add <domain> <date> batch\<domain>-square.png batch\<domain>.caption.txt portfolio`. Log the date once LinkedIn is scheduled, then tick the URL in Notion.
 
 ---
 
 ## Monthly Blog Batch (automated — 1st and 15th of each month, 7:00 AM)
 
-A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Claude writes the blogs itself, publishes them, and schedules one per Tuesday 10:00 AM MYT on Facebook/Instagram, LinkedIn and Google Business Profile. The 1st does the month's blogs. The 15th normally only clears the Meta waiting list (Step 0b): Meta schedules at most **29 days** ahead, so a Tuesday on the 30th/31st can't reach Meta from the 1st.
+A scheduled task runs this in `C:\Code\Python-MetaPostingTools`. Part A: Claude writes the blogs itself, publishes them, and schedules one per Tuesday 10:00 AM MYT on Facebook/Instagram, LinkedIn and Google Business Profile. Part B: one portfolio per Wednesday 10:00 AM (see Portfolio Batch above). Testimonials (Thursdays) stay manual. The 1st does the month. The 15th normally only clears the Meta waiting list (Step 0b): Meta schedules at most **29 days** ahead, so a Tuesday/Wednesday on the 30th/31st can't reach Meta from the 1st.
 
 **Standing approval (Sean, 2026-11-01):** the whole run is hands-off. Write and publish the blogs, draw the graphics, and schedule every post without asking. Sean reviews after they're posted. Don't touch the Canva designs (testimonials still live there).
 
@@ -156,9 +178,20 @@ venv\Scripts\python plan_blog_batch.py
 venv\Scripts\python meta_pending.py due
 ```
 
-For each entry, run `meta_post.py <image> <slug> --caption-file <caption> --type blog --date <date>` with the paths it lists. On exit 0, `venv\Scripts\python meta_pending.py done <slug>`. Entries marked `"missed": true` are past — report them and `done` them. Do this before Step 1.
+For each entry, run `meta_post.py <image> [<slug>] --caption-file <caption> --type <type> --date <date>` with the paths it lists (pass the slug only for `blog`; entries without a `type` are blogs). On exit 0, `venv\Scripts\python meta_pending.py done <slug>`. Entries marked `"missed": true` are past — report them and `done` them. Do this before Step 1.
 
-If `tuesdays_to_fill` is empty and nothing was due, report "nothing to schedule" and stop.
+### Step 0c — Feed check (before anything new is scheduled)
+
+`wednesdays_to_fill` (from Step 0) lists this month's open Wednesdays. Count the unticked URLs under Notion's Social Media list (Portfolio Batch, Source).
+
+**If there are fewer unticked URLs than open Wednesdays, pause the month.** Sean wants every week to be blog → portfolio → testimonial, never a gap. So:
+1. Schedule nothing new this month: no blogs (Part A), no portfolios (Part B).
+2. Take down anything already scheduled for this month's remaining weeks that would break the pattern — blog, portfolio or testimonial posts on Facebook/Instagram (Meta Business Suite → Planner), LinkedIn (company page → scheduled posts) and Google Business Profile (posts list). Use Claude in Chrome with Sean's own signed-in Chrome. Delete only posts dated in this month; screenshot each one before deleting. Remove this month's entries from the Meta waiting list with `meta_pending.py done`. Blogs already live on the website stay.
+3. Report: how many URLs Sean needs to add to Notion, and every post you took down (platform, date, title).
+
+If `tuesdays_to_fill` and `wednesdays_to_fill` are both empty and nothing was due, report "nothing to schedule" and stop.
+
+**Part A (blogs) is Steps 1–6 below. Part B (portfolios) is P1–P4 in Portfolio Batch, once per open Wednesday, oldest first, taking the unticked Notion URLs top first. Do the blog for each week, then that week's portfolio.**
 
 ### Step 1 — Write the blog
 
@@ -239,7 +272,7 @@ Copy each `batch\<slug>-social.png` to `C:\Users\schuah\Downloads\<slug>.png`, t
 
 ### Step 8 — Report
 
-One table: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Then anything Sean has to do (expired login, a post to check). No other summary.
+Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left, and anything Sean has to do (expired login, a post to check, the list running low). No other summary.
 
 ---
 
