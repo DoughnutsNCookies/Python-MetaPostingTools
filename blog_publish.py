@@ -6,8 +6,10 @@ from pathlib import Path
 
 from blog_convert import convert, DEFAULT_QUALITY
 
-GH_CLI = r"C:\Program Files\GitHub CLI\gh.exe"
-LANDING_PAGE = Path(r"C:\Code\WebApp-SchuahSolutions-WebDevLandingPage")
+LANDING_REPO = Path(r"C:\Code\WebApp-SchuahSolutions-WebDevLandingPage")
+# Publishing uses its own checkout so it never commits onto whatever branch is checked
+# out in the landing page folder. Detached, so it never holds `main` checked out.
+PUBLISH_CHECKOUT = Path(r"C:\Code\Python-MetaPostingTools\sessions\landing-publish")
 
 
 def parse_frontmatter(md_path: Path) -> dict:
@@ -52,98 +54,58 @@ def git(args: list, cwd: Path) -> str:
     return result.stdout.strip()
 
 
+def publish_checkout() -> Path:
+    """The publish checkout, created if missing and moved to the latest origin/main."""
+    if not PUBLISH_CHECKOUT.exists():
+        git(["fetch", "origin", "main"], LANDING_REPO)
+        git(["worktree", "add", "--detach", str(PUBLISH_CHECKOUT), "origin/main"], LANDING_REPO)
+    git(["fetch", "origin", "main"], PUBLISH_CHECKOUT)
+    git(["checkout", "--detach", "origin/main"], PUBLISH_CHECKOUT)
+    return PUBLISH_CHECKOUT
+
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Publish a new blog post to the landing page and create a PR."
-    )
+    parser = argparse.ArgumentParser(description="Publish a blog post to the live landing page (main).")
     parser.add_argument("blog", help="Path to the blog .md file")
     parser.add_argument("image", help="Path to the cover image PNG")
-    parser.add_argument(
-        "--worktree",
-        default=str(LANDING_PAGE),
-        help=f"Path to the worktree (or landing page root). Default: {LANDING_PAGE}",
-    )
-    parser.add_argument(
-        "--quality",
-        type=int,
-        default=DEFAULT_QUALITY,
-        metavar="1-100",
-        help=f"WEBP quality. Default: {DEFAULT_QUALITY}",
-    )
+    parser.add_argument("--quality", type=int, default=DEFAULT_QUALITY, metavar="1-100",
+                        help=f"WEBP quality. Default: {DEFAULT_QUALITY}")
     args = parser.parse_args()
 
     blog_path = Path(args.blog)
     image_path = Path(args.image)
-    worktree = Path(args.worktree)
-    landing = worktree / "landing-page"
+    for path in (blog_path, image_path):
+        if not path.exists():
+            print(f"ERROR: Not found: {path}")
+            sys.exit(1)
 
-    if not blog_path.exists():
-        print(f"ERROR: Blog file not found: {blog_path}")
-        sys.exit(1)
-    if not image_path.exists():
-        print(f"ERROR: Image not found: {image_path}")
-        sys.exit(1)
-    if not landing.exists():
-        print(f"ERROR: landing-page directory not found at: {landing}")
-        sys.exit(1)
-
-    # 1. Parse slug from frontmatter
     fm = parse_frontmatter(blog_path)
     slug = fm.get("slug")
-    title = fm.get("title", slug)
     if not slug:
         print("ERROR: 'slug' not found in frontmatter.")
         sys.exit(1)
-    print(f"\n  Blog: {title}")
-    print(f"  Slug: {slug}\n")
+    print(f"\n  Blog: {fm.get('title', slug)}\n  Slug: {slug}\n")
 
-    branch = git(["rev-parse", "--abbrev-ref", "HEAD"], worktree)
-    if branch == "main":
-        git(["pull", "--ff-only", "origin", "main"], worktree)
+    checkout = publish_checkout()
+    landing = checkout / "landing-page"
 
-    # 2. Copy markdown file
     dest_md = landing / "src" / "blogs" / f"{slug}.md"
     if dest_md.exists():
         print(f"  WARNING: {dest_md.name} already exists — overwriting.")
     dest_md.write_text(blog_path.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"  Copied markdown → {dest_md}")
 
-    # 3. Add path entry to paths.ts
     paths_ts = landing / "src" / "app" / "paths.ts"
     add_path_entry(paths_ts, slug)
 
-    # 4. Convert PNG to WEBP
-    print(f"  Converting image...")
+    print("  Converting image...")
     webp_dir = landing / "public" / "blogs"
     convert(image_path, slug, args.quality, force=True, target_dir=webp_dir)
 
-    # 5. Commit and push
-    print(f"  Branch: {branch}")
-    git(["add", str(dest_md), str(paths_ts), str(webp_dir / f"{slug}.webp")], worktree)
-    git(["commit", "-m", f"feat: Add blog post '{slug}'"], worktree)
-    git(["push", "origin", f"HEAD:{branch}"], worktree)
-    print(f"  Pushed to {branch}")
-
-    # The landing page deploys from main, so a push there is already live.
-    if branch == "main":
-        print("\n  Published (pushed straight to main, no PR needed).\n")
-        return
-
-    # 6. Create PR
-    print("\n  Creating PR...")
-    result = subprocess.run(
-        [GH_CLI, "pr", "create", "--base", "main",
-         "--title", f"feat: Add blog post — {title}",
-         "--body", f"Adds blog post `{slug}`.\n\n- `src/blogs/{slug}.md`\n- `public/blogs/{slug}.webp`\n- Path entry in `paths.ts`"],
-        cwd=worktree,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        print(f"ERROR creating PR:\n{result.stderr.strip()}")
-        sys.exit(1)
-    pr_url = result.stdout.strip()
-    print(f"\n  PR created: {pr_url}\n")
+    git(["add", str(dest_md), str(paths_ts), str(webp_dir / f"{slug}.webp")], checkout)
+    git(["commit", "-m", f"feat: Add blog post '{slug}'"], checkout)
+    git(["push", "origin", "HEAD:main"], checkout)
+    print("\n  Published: pushed to main, which is live.\n")
 
 
 if __name__ == "__main__":

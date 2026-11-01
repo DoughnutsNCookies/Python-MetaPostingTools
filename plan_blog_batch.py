@@ -9,19 +9,19 @@ import json
 import re
 import sys
 from datetime import datetime, timedelta
-from pathlib import Path
 
+from blog_publish import publish_checkout
 from scheduling import MYT, POST_HOUR
 
-BLOGS_DIR = Path(r"C:\Code\WebApp-SchuahSolutions-WebDevLandingPage\landing-page\src\blogs")
 SCHEDULE_LIMIT = timedelta(days=30)
 MIN_LEAD = timedelta(hours=1)
 TUESDAY = 1
 
 
 def read_blogs():
+    blogs_dir = publish_checkout() / "landing-page" / "src" / "blogs"
     blogs = []
-    for md in sorted(BLOGS_DIR.glob("*.md")):
+    for md in sorted(blogs_dir.glob("*.md")):
         fm = dict(re.findall(r'^(\w+):\s*"(.*)"\s*$', md.read_text(encoding="utf-8"), re.M))
         try:
             day = datetime.strptime(fm.get("date", "").title(), "%d %B %Y").date()
