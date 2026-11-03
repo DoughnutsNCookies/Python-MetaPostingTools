@@ -11,11 +11,12 @@ import re
 import sys
 from datetime import datetime, timedelta
 
-import portfolio_log
+import post_log
 from blog_publish import publish_checkout
 from scheduling import MYT, POST_HOUR
 
 MIN_LEAD = timedelta(hours=1)
+TESTIMONIAL_WARNING = timedelta(days=16)
 TUESDAY, WEDNESDAY = 1, 2
 
 
@@ -59,8 +60,10 @@ def main():
     now = datetime.now(MYT)
     blogs = read_blogs()
     last, tuesdays = days_to_fill([b["date"] for b in blogs if b["date"]], now, TUESDAY)
-    portfolios = portfolio_log.load()
+    portfolios = post_log.load("portfolio")
     last_portfolio, wednesdays = days_to_fill([p["date"] for p in portfolios], now, WEDNESDAY)
+    testimonials = [t["date"] for t in post_log.load("testimonial")]
+    testimonials_until = max(testimonials) if testimonials else None
     print(json.dumps({
         "now": now.isoformat(timespec="minutes"),
         "last_scheduled": last,
@@ -68,6 +71,10 @@ def main():
         "last_portfolio": last_portfolio,
         "wednesdays_to_fill": wednesdays,
         "next_month_wednesdays": next_month_wednesdays(now),
+        "testimonials_until": testimonials_until,
+        # Runs are ~2 weeks apart, so warn if testimonials run out before the run after this one.
+        "testimonial_refill_needed": testimonials_until is None
+            or testimonials_until <= (now + TESTIMONIAL_WARNING).date().isoformat(),
         "existing_posts": sorted(blogs, key=lambda b: b["date"] or "", reverse=True),
     }, indent=2, ensure_ascii=False))
 
