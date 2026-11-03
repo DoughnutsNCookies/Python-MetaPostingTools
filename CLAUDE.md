@@ -20,7 +20,8 @@ CLI tools for the full Schuah Solutions blog publishing and social media workflo
 - **`meta_pending.py`** — Waiting list for Meta posts more than 29 days out (`add` / `due` / `done`), kept in `sessions\meta_pending\`.
 - **`portfolio_screenshots.py`** — Captures a client site's homepage: square 1026×1026 and landscape 2052×1026.
 - **`portfolio_publish.py`** — Adds a client site to the schuahsolutions.com portfolio (entry in `PortfolioSection.tsx` + WebP), skipping sites already there.
-- **`portfolio_log.py`** — Which portfolio is scheduled on which Wednesday (`sessions\portfolio_schedule.json`); the planner and the testimonial feed check read it.
+- **`post_log.py`** — Which portfolio / testimonial is on which day (`sessions\portfolio_schedule.json`, `sessions\testimonial_schedule.json`); `next testimonial N` gives the next free Thursdays. The planner and the feed check read it.
+- **`render_testimonial_graphic.py`** — Renders a testimonial's 1080×1080 post from a WhatsApp screenshot and a three-part headline.
 - **`setup_meta_browser.py`** — Opens real Chrome on the Meta profile (`sessions/chrome_profile_meta`) so the user can log in. `meta_post.py` drives that same profile.
 - **`setup_linkedin_browser.py`** — One-time login helper for LinkedIn: opens a browser for manual login, saves session to `sessions/session_linkedin.json`. Must be run directly from a terminal (uses `input()`).
 - **`gbp_post.py`** — ⚠️ NOT YET ACTIVE. Google Business Profile post automation. Pending GBP API access approval (requested, ETA 7–10 business days). Once approved, replace the Playwright approach in this file with the proper API calls using `client_secret.json` + `token_gbp.json`.
@@ -63,42 +64,35 @@ A blog post requires three things in the landing page repo: a markdown file at `
 
 ## Testimonial Posting Workflow
 
-The user sends the social media caption. Claude handles everything else automatically.
+Sean sends WhatsApp chat screenshots from happy clients — one or several at a time. Each becomes a Thursday 10:00 AM post on Facebook/Instagram and LinkedIn, queued after the last scheduled testimonial. No Canva (the big design is too large for the connector); the graphic is rendered locally.
 
-**Feed order check first.** Sean's feed must go blog (Tue) → portfolio (Wed) → testimonial (Thu) every week. Before scheduling a testimonial for a Thursday, run `venv\Scripts\python plan_blog_batch.py` and `venv\Scripts\python portfolio_log.py list` and confirm that week's Tuesday has a blog (an `existing_posts` date) and its Wednesday has a portfolio. If either is missing — for example the month is paused (see Monthly Batch, Step 0c) — don't schedule it; tell Sean which slot is empty.
+**Feed order check first.** Sean's feed must go blog (Tue) → portfolio (Wed) → testimonial (Thu) every week. Get the dates with `venv\Scripts\python post_log.py next testimonial <N>` (N = number of screenshots). For each date, check with `venv\Scripts\python plan_blog_batch.py` (`existing_posts` dates) and `venv\Scripts\python post_log.py list portfolio` that the same week's Tuesday has a blog and its Wednesday has a portfolio. If either is missing — for example the month is paused (Monthly Batch, Step 0c) — don't schedule that one; tell Sean which slot is empty. Testimonials for a later month whose blogs/portfolios aren't scheduled yet can wait: say so and schedule them after that month's run.
 
-### Step 1 — Export image from Canva (Claude does this via MCP)
+### Step 1 — Graphic
 
-| Design | Canva ID | Purpose |
-|--------|----------|---------|
-| Social Media Post | `DAGal3LsJUo` | Posted to Facebook + Instagram |
-
-Export page 1 as PNG and download to:
-- `C:\Code\Python-MetaPostingTools\social-post.png`
-
-Before deleting, copy to Downloads as a named archive:
-```bash
-cp "C:\Code\Python-MetaPostingTools\social-post.png" "C:\Users\schuah\Downloads\testimonial-YYYY-MM-DD.png"
-```
-Use today's date for the filename (e.g. `testimonial-2026-05-02.png`). Then delete the original.
-
-### Step 2 — Run meta_post.py (Facebook + Instagram)
-
-Write the caption to `caption.txt`, then:
+Copy each screenshot into `batch\t<N>-chat.png`. Write a short headline about what the client said, in three parts (dark prefix / accent highlight / optional dark suffix, two lines at most), then:
 
 ```bash
-cd "C:\Code\Python-MetaPostingTools"
-venv\Scripts\activate
-python meta_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+venv\Scripts\python render_testimonial_graphic.py batch\t1-chat.png --prefix "Walk-ins still lead, but " --highlight "Google Ads orders are coming in" --suffix "." --accent "#3d85c6" --out batch\t1.png
 ```
 
-### Step 3 — Run linkedin_post.py
+1080×1080: logo, Anton headline, the chat screenshot below it with rounded corners. Look at it; if a word ends up alone on the last line, reword.
+
+### Step 2 — Caption
+
+Same shape as past testimonial captions: a one-line hook with an emoji; what happened, quoting the client exactly as in the chat (their words, their spelling); a 💡 line on why it matters; "With us, you get:" and three ✅ lines; a 🔥 question; `📩 WhatsApp me today and …`. Don't invent details the chat doesn't show, and don't guess the client's gender (say "the client" / "they"). Save as `batch\t<N>.caption.txt`.
+
+### Step 3 — Schedule, log, archive
 
 ```bash
-python -u linkedin_post.py "C:\Code\Python-MetaPostingTools\social-post.png" --caption-file caption.txt --type testimonial
+venv\Scripts\python meta_post.py batch\t1.png --caption-file batch\t1.caption.txt --type testimonial --date <YYYY-MM-DD>
+venv\Scripts\python -u linkedin_post.py batch\t1.png --caption-file batch\t1.caption.txt --type testimonial --date <YYYY-MM-DD>
+venv\Scripts\python post_log.py add testimonial <YYYY-MM-DD> "<short description>"
 ```
 
-That's it — no publish, no PR, no GBP reminder, no worktree sync.
+Then copy `batch\t1.png` to `C:\Users\schuah\Downloads\testimonial-<YYYY-MM-DD>.png` and empty `batch\`. Same Meta exit codes as the blogs (exit 5: `meta_pending.py add t-<date> <date> <png> <caption> testimonial`).
+
+If an unticked "Claude: Testimonials need refilling" to-do is under **\[Urgent\]** in Notion and Sean has now sent enough to cover the next two weeks, tick it.
 
 ---
 
@@ -151,7 +145,7 @@ Write the 1–2 description lines yourself from the client's website: what the b
 ```bash
 venv\Scripts\python meta_post.py batch\<domain>-square.png --caption-file batch\<domain>.caption.txt --type portfolio --date <YYYY-MM-DD>
 venv\Scripts\python -u linkedin_post.py batch\<domain>-square.png --caption-file batch\<domain>.caption.txt --type portfolio --date <YYYY-MM-DD>
-venv\Scripts\python portfolio_log.py add <YYYY-MM-DD> <domain>
+venv\Scripts\python post_log.py add portfolio <YYYY-MM-DD> <domain>
 ```
 
 Same exit codes as the blogs. On Meta exit 5 (more than 29 days out), `meta_pending.py add <domain> <date> batch\<domain>-square.png batch\<domain>.caption.txt portfolio`. Log the date once LinkedIn is scheduled, then tick the URL in Notion.
@@ -199,7 +193,7 @@ For each entry, run `meta_post.py <image> [<slug>] --caption-file <caption> --ty
 2. Take down anything already scheduled for this month's remaining weeks that would break the pattern — blog, portfolio or testimonial posts on Facebook/Instagram (Meta Business Suite → Planner), LinkedIn (company page → scheduled posts) and Google Business Profile (posts list). Use Claude in Chrome with Sean's own signed-in Chrome. Delete only posts dated in this month; screenshot each one before deleting. Remove this month's entries from the Meta waiting list with `meta_pending.py done`. Blogs already live on the website stay.
 3. Report: how many URLs Sean needs to add to Notion, and every post you took down (platform, date, title).
 
-If `tuesdays_to_fill` and `wednesdays_to_fill` are both empty and nothing was due, report "nothing to schedule" and stop.
+If `tuesdays_to_fill` and `wednesdays_to_fill` are both empty and nothing was due, skip to Step 7 (the testimonial refill check still runs), then report.
 
 **Part A (blogs) is Steps 1–6 below. Part B (portfolios) is P1–P4 in Portfolio Batch, once per open Wednesday, oldest first, taking the unticked Notion URLs top first, then P5. Do the blog for each week, then that week's portfolio.**
 
@@ -276,13 +270,23 @@ After scheduling, Meta shows a "Boost" upsell; the script clicks **Maybe later**
 
 If the Chrome extension isn't connected, start Chrome (`start chrome`), wait, and retry once. If it still fails, skip GBP and put the copy-paste text and link in the report.
 
-### Step 7 — Archive and clean up
+### Step 7 — Testimonial refill check, archive and clean up
 
-Copy each `batch\<slug>-social.png` to `C:\Users\schuah\Downloads\<slug>.png`, then empty `batch\`.
+**Every run (1st and 15th), even when nothing else was scheduled.** If the planner's `testimonial_refill_needed` is true (the last scheduled testimonial, `testimonials_until`, is less than ~2 weeks away, so it would run out before the next run), add an unticked to-do as the first item under **\[Urgent\]** in the Notion To-do List, matching the indentation of the items there:
+
+```
+Claude: Testimonials need refilling — the last one is scheduled for Thu <D Month>. Send me new WhatsApp screenshots before then to keep Thursdays going.
+```
+
+(If nothing is scheduled at all, say "no testimonials are scheduled" instead.) Fetch the page first; if an unticked "Claude: Testimonials need refilling" item is already there, update its text rather than adding another. Testimonials don't pause the month — this is only a reminder.
+
+Also tidy the Claude notes: tick "Claude: Top up the portfolio list" once there are enough unticked sites for next month, and "Claude: Testimonials need refilling" once `testimonial_refill_needed` is false. Never touch Sean's own to-dos.
+
+Then copy each `batch\<slug>-social.png` to `C:\Users\schuah\Downloads\<slug>.png` and empty `batch\`.
 
 ### Step 8 — Report
 
-Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left (and whether the P5 top-up note was added), and anything Sean has to do (expired login, a post to check). No other summary.
+Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left, testimonials scheduled until when, which Claude notes were added or ticked, and anything Sean has to do (expired login, a post to check). No other summary.
 
 ---
 
