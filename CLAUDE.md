@@ -92,7 +92,7 @@ venv\Scripts\python post_log.py add testimonial <YYYY-MM-DD> "<short description
 
 Then copy `batch\t1.png` to `C:\Users\schuah\Downloads\testimonial-<YYYY-MM-DD>.png` and empty `batch\`. Same Meta exit codes as the blogs (exit 5: `meta_pending.py add t-<date> <date> <png> <caption> testimonial`).
 
-If an unticked "Claude: Testimonials need refilling" to-do is under **\[Urgent\]** in Notion and Sean has now sent enough to cover the next two weeks, tick it.
+If a "Testimonials need refilling" reminder is still unticked under **\[Claude\]** in Notion and Sean has now sent enough to cover the next two weeks, tell him in chat so he can tick it. Don't tick it yourself.
 
 ---
 
@@ -152,13 +152,11 @@ Same exit codes as the blogs. On Meta exit 5 (more than 29 days out), `meta_pend
 
 ### P5 — Low-list warning (after the month's portfolios are done)
 
-Count the unticked URLs left under Social Media. If that's fewer than the planner's `next_month_wednesdays`, next month will pause (Step 0c), so warn Sean a month ahead: add an unticked to-do as the first item under **\[Urgent\]** on the same Notion page, matching the indentation of the items already there:
+Count the unticked URLs left under Social Media. If that's fewer than the planner's `next_month_wednesdays`, next month will pause (Step 0c), so warn Sean a month ahead with this reminder (see Notion reminders, under Step 7):
 
 ```
-Claude: Top up the portfolio list — <N> sites left under Projects → Social Media, but <Month> has <M> Wednesdays. Add at least <M − N> more before 1 <Month>, or <Month>'s posts pause.
+Schuah Solutions portfolio posts: top up the list — <N> sites left under Projects → Social Media, but <Month> has <M> Wednesdays. Add at least <M − N> more before 1 <Month> <YYYY>, or <Month>'s posts pause.
 ```
-
-Fetch the page first. If an unticked "Claude: Top up the portfolio list" item is already there, update its text instead of adding a second one. Never tick or remove Sean's other to-dos.
 
 ---
 
@@ -272,21 +270,26 @@ If the Chrome extension isn't connected, start Chrome (`start chrome`), wait, an
 
 ### Step 7 — Testimonial refill check, archive and clean up
 
-**Every run (1st and 15th), even when nothing else was scheduled.** If the planner's `testimonial_refill_needed` is true (the last scheduled testimonial, `testimonials_until`, is less than ~2 weeks away, so it would run out before the next run), add an unticked to-do as the first item under **\[Urgent\]** in the Notion To-do List, matching the indentation of the items there:
+**Every run (1st and 15th), even when nothing else was scheduled.** If the planner's `testimonial_refill_needed` is true (the last scheduled testimonial, `testimonials_until`, is less than ~2 weeks away, so it would run out before the next run), add this reminder:
 
 ```
-Claude: Testimonials need refilling — the last one is scheduled for Thu <D Month>. Send me new WhatsApp screenshots before then to keep Thursdays going.
+Schuah Solutions testimonials need refilling — the last one is scheduled for Thu <D Month YYYY>. Send Claude new WhatsApp screenshots before then to keep Thursdays going.
 ```
 
-(If nothing is scheduled at all, say "no testimonials are scheduled" instead.) Fetch the page first; if an unticked "Claude: Testimonials need refilling" item is already there, update its text rather than adding another. Testimonials don't pause the month — this is only a reminder.
+(If nothing is scheduled at all, say "no testimonials are scheduled" instead.) Testimonials don't pause the month — this is only a reminder.
 
-Also tidy the Claude notes: tick "Claude: Top up the portfolio list" once there are enough unticked sites for next month, and "Claude: Testimonials need refilling" once `testimonial_refill_needed` is false. Never touch Sean's own to-dos.
+**Notion reminders** (these two, and any other reminder a run leaves for Sean; his global rule):
+- Fetch the To-do List page first. Add the reminder as an unticked to-do nested inside the **\[Claude\]** item under `## Next`, matching the indentation of the items there.
+- Change nothing else on the page. Never tick or remove anything, including earlier reminders; Sean ticks them. If an unticked reminder on the same subject is already inside **\[Claude\]**, update its text instead of adding a second one. The one other edit a run makes is ticking a scheduled portfolio URL (Portfolio Batch, Source).
+- If a reminder has stopped applying (enough sites or testimonials now), leave it and say so in the report.
+- Say in the report that it was added and what it says. If the Notion connector is unavailable, say so and put the reminder in the report; don't assume it was saved.
+- No NDA client names or data; use a generic description.
 
 Then copy each `batch\<slug>-social.png` to `C:\Users\schuah\Downloads\<slug>.png` and empty `batch\`.
 
 ### Step 8 — Report
 
-Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left, testimonials scheduled until when, which Claude notes were added or ticked, and anything Sean has to do (expired login, a post to check). No other summary.
+Two tables. Blogs: Tuesday, title, blog URL, and done/failed for website, Facebook+Instagram, LinkedIn, GBP. Portfolios: Wednesday, business, URL, category, website (added / already there), Facebook+Instagram, LinkedIn, Notion ticked. Then how many unticked Notion URLs are left, testimonials scheduled until when, the text of any Notion reminder added or updated, any reminder that no longer applies, and anything Sean has to do (expired login, a post to check). No other summary.
 
 ---
 
